@@ -14,6 +14,7 @@
   let animationId;
   let loading = true;
   let error = null;
+  let gridHelper;
 
   // Environment controls
   let useEnvironment = true;
@@ -22,6 +23,7 @@
   let customHDRI = null;
   let isLoadingHDRI = false;
   let hdriError = null;
+  let showGrid = true;
 
   onMount(() => {
     initScene();
@@ -126,7 +128,8 @@
     scene.add(pointLight2);
 
     // Grid helper
-    const gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x222222);
+    gridHelper = new THREE.GridHelper(10, 10, 0x444444, 0x222222);
+    gridHelper.visible = showGrid;
     scene.add(gridHelper);
 
     // Start animation loop
@@ -297,6 +300,11 @@
     updateEnvironmentIntensity();
     // Force a re-render by updating a dummy property
     environmentIntensity;
+  }
+
+  // Toggle grid visibility
+  $: if (gridHelper) {
+    gridHelper.visible = showGrid;
   }
 
   function loadModel() {
@@ -528,6 +536,18 @@
                   class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {useEnvironment ? 'bg-indigo-500' : 'bg-white/20'}"
                 >
                   <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {useEnvironment ? 'translate-x-6' : 'translate-x-1'}"></span>
+                </button>
+              </div>
+
+              <!-- Grid Toggle -->
+              <div class="flex items-center justify-between">
+                <label for="grid-toggle" class="text-sm text-white/80">Show Grid</label>
+                <button
+                  id="grid-toggle"
+                  on:click={() => showGrid = !showGrid}
+                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {showGrid ? 'bg-indigo-500' : 'bg-white/20'}"
+                >
+                  <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {showGrid ? 'translate-x-6' : 'translate-x-1'}"></span>
                 </button>
               </div>
 
