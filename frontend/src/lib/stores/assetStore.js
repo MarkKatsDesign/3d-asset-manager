@@ -36,6 +36,11 @@ function createAssetStore() {
         formData.append('tags', JSON.stringify(metadata.tags || []));
         formData.append('user', pb.authStore.model.id);
 
+        // Add thumbnail if it was generated
+        if (metadata.thumbnail) {
+          formData.append('thumbnail', metadata.thumbnail, 'thumbnail.jpg');
+        }
+
         const record = await pb.collection('assets').create(formData);
 
         update(state => ({

@@ -1,5 +1,7 @@
 <script>
   import { assetStore } from '../stores/assetStore';
+  import * as THREE from 'three';
+  import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
   export let onClose;
 
@@ -10,6 +12,9 @@
   let tags = '';
   let uploading = false;
   let error = null;
+  let thumbnailBlob = null;
+  let thumbnailPreview = null;
+  let generatingThumbnail = false;
 
   function handleDragOver(e) {
     e.preventDefault();
@@ -37,7 +42,7 @@
     }
   }
 
-  function handleFileSelect(selectedFile) {
+  async function handleFileSelect(selectedFile) {
     // Validate file type
     const validExtensions = ['.glb', '.gltf'];
     const fileName = selectedFile.name.toLowerCase();
@@ -54,6 +59,105 @@
     // Set default name from filename
     if (!name) {
       name = selectedFile.name.replace(/\.(glb|gltf)$/i, '');
+    }
+
+    // Generate thumbnail automatically
+    await generateThumbnail(selectedFile);
+  }
+
+  async function generateThumbnail(modelFile) {
+    generatingThumbnail = true;
+
+    try {
+      // Create a temporary URL for the file
+      const fileURL = URL.createObjectURL(modelFile);
+
+      // Create a hidden canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      canvas.style.display = 'none';
+      document.body.appendChild(canvas);
+
+      // Setup Three.js scene
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x1a1a2e);
+
+      const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+      camera.position.set(3, 3, 3);
+
+      const renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        preserveDrawingBuffer: true // Important for capturing image
+      });
+      renderer.setSize(512, 512);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.2;
+
+      // Add lights
+      const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+      scene.add(hemisphereLight);
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
+      directionalLight.position.set(5, 10, 7.5);
+      scene.add(directionalLight);
+
+      // Load the model
+      const loader = new GLTFLoader();
+      const gltf = await new Promise((resolve, reject) => {
+        loader.load(
+          fileURL,
+          (loadedGltf) => resolve(loadedGltf),
+          undefined,
+          (err) => reject(err)
+        );
+      });
+
+      const model = gltf.scene;
+
+      // Center and scale model
+      const box = new THREE.Box3().setFromObject(model);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const scale = 2 / maxDim;
+
+      model.position.sub(center);
+      model.scale.setScalar(scale);
+
+      scene.add(model);
+
+      // Position camera to look at center
+      camera.lookAt(0, 0, 0);
+
+      // Render
+      renderer.render(scene, camera);
+
+      // Capture image
+      const dataURL = canvas.toDataURL('image/jpeg', 0.9);
+      thumbnailPreview = dataURL;
+
+      // Convert to blob
+      const response = await fetch(dataURL);
+      thumbnailBlob = await response.blob();
+
+      // Cleanup
+      URL.revokeObjectURL(fileURL);
+      document.body.removeChild(canvas);
+      renderer.dispose();
+
+      generatingThumbnail = false;
+    } catch (err) {
+      console.error('Error generating thumbnail:', err);
+      // Don't show error to user, just skip thumbnail
+      generatingThumbnail = false;
+      thumbnailBlob = null;
+      thumbnailPreview = null;
     }
   }
 
@@ -74,7 +178,8 @@
     const metadata = {
       name: name.trim(),
       description: description.trim(),
-      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0),
+      thumbnail: thumbnailBlob // Include generated thumbnail
     };
 
     const result = await assetStore.uploadAsset(file, metadata);
