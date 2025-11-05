@@ -1,0 +1,10 @@
+# PocketBase binary
+pocketbase
+pocketbase.exe
+*.zip
+
+# PocketBase data
+pb_data/
+
+# Logs
+*.log
