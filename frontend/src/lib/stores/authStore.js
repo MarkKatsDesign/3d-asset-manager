@@ -15,6 +15,43 @@ function createAuthStore() {
     });
   });
 
+  // Helper to parse PocketBase errors
+  const parseError = (error) => {
+    if (error.response?.data) {
+      const data = error.response.data;
+      // Handle field-specific errors
+      if (data.email) {
+        return `Email error: ${data.email.message}`;
+      }
+      if (data.password) {
+        return `Password error: ${data.password.message}`;
+      }
+      if (data.passwordConfirm) {
+        return `Password confirmation error: ${data.passwordConfirm.message}`;
+      }
+      if (data.name) {
+        return `Name error: ${data.name.message}`;
+      }
+      // Handle general error message
+      if (data.message) {
+        return data.message;
+      }
+    }
+
+    // Handle common authentication errors
+    if (error.status === 400) {
+      return 'Invalid email or password. Please check your credentials and try again.';
+    }
+    if (error.status === 404) {
+      return 'No account found with this email address. Please sign up first.';
+    }
+    if (error.status === 429) {
+      return 'Too many attempts. Please try again later.';
+    }
+
+    return error.message || 'An unexpected error occurred. Please try again.';
+  };
+
   return {
     subscribe,
     login: async (email, password) => {
@@ -27,7 +64,7 @@ function createAuthStore() {
         return { success: true };
       } catch (error) {
         console.error('Login error:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: parseError(error) };
       }
     },
     register: async (email, password, name) => {
@@ -43,7 +80,7 @@ function createAuthStore() {
         return await createAuthStore().login(email, password);
       } catch (error) {
         console.error('Registration error:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: parseError(error) };
       }
     },
     logout: () => {

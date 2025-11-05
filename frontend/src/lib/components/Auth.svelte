@@ -7,9 +7,42 @@
   let name = '';
   let error = '';
   let loading = false;
+  let showPassword = false;
+
+  // Password validation state
+  let passwordTouched = false;
+  $: passwordValid = password.length >= 8;
+  $: emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   async function handleSubmit() {
     error = '';
+
+    // Client-side validation
+    if (!email.trim()) {
+      error = 'Please enter your email address';
+      return;
+    }
+
+    if (!emailValid) {
+      error = 'Please enter a valid email address';
+      return;
+    }
+
+    if (!password) {
+      error = 'Please enter your password';
+      return;
+    }
+
+    if (!isLogin && password.length < 8) {
+      error = 'Password must be at least 8 characters long';
+      return;
+    }
+
+    if (!isLogin && !name.trim()) {
+      error = 'Please enter your name';
+      return;
+    }
+
     loading = true;
 
     if (isLogin) {
@@ -18,11 +51,6 @@
         error = result.error;
       }
     } else {
-      if (!name.trim()) {
-        error = 'Please enter your name';
-        loading = false;
-        return;
-      }
       const result = await authStore.register(email, password, name);
       if (!result.success) {
         error = result.error;
@@ -35,6 +63,15 @@
   function toggleMode() {
     isLogin = !isLogin;
     error = '';
+    passwordTouched = false;
+  }
+
+  function togglePasswordVisibility() {
+    showPassword = !showPassword;
+  }
+
+  function handlePasswordInput() {
+    passwordTouched = true;
   }
 </script>
 
@@ -68,7 +105,7 @@
         <!-- Name Field (Register only) -->
         <div>
           <label for="name" class="block text-sm font-medium mb-2">
-            Full Name
+            Full Name <span class="text-red-400">*</span>
           </label>
           <input
             type="text"
@@ -76,8 +113,8 @@
             bind:value={name}
             placeholder="John Doe"
             class="glass-input w-full"
-            required={!isLogin}
             disabled={loading}
+            autocomplete="name"
           />
         </div>
       {/if}
@@ -85,47 +122,102 @@
       <!-- Email Field -->
       <div>
         <label for="email" class="block text-sm font-medium mb-2">
-          Email Address
+          Email Address <span class="text-red-400">*</span>
         </label>
         <input
           type="email"
           id="email"
           bind:value={email}
           placeholder="you@example.com"
-          class="glass-input w-full"
-          required
+          class="glass-input w-full {email && !emailValid ? 'border-red-400/50' : ''}"
           disabled={loading}
+          autocomplete="email"
         />
+        {#if email && !emailValid}
+          <p class="text-xs text-red-400 mt-1 flex items-center space-x-1">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Please enter a valid email address</span>
+          </p>
+        {/if}
       </div>
 
       <!-- Password Field -->
       <div>
         <label for="password" class="block text-sm font-medium mb-2">
-          Password
+          Password <span class="text-red-400">*</span>
         </label>
-        <input
-          type="password"
-          id="password"
-          bind:value={password}
-          placeholder="••••••••"
-          class="glass-input w-full"
-          required
-          minlength="8"
-          disabled={loading}
-        />
+        <div class="relative">
+          <input
+            type={showPassword ? "text" : "password"}
+            id="password"
+            bind:value={password}
+            on:input={handlePasswordInput}
+            placeholder="••••••••"
+            class="glass-input w-full pr-12 {!isLogin && passwordTouched && !passwordValid ? 'border-red-400/50' : ''}"
+            disabled={loading}
+            autocomplete={isLogin ? "current-password" : "new-password"}
+          />
+          <button
+            type="button"
+            on:click={togglePasswordVisibility}
+            class="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-white/10 rounded-lg transition-colors"
+            tabindex="-1"
+            title={showPassword ? "Hide password" : "Show password"}
+          >
+            {#if showPassword}
+              <!-- Eye Slash Icon (Hide) -->
+              <svg class="w-5 h-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+              </svg>
+            {:else}
+              <!-- Eye Icon (Show) -->
+              <svg class="w-5 h-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            {/if}
+          </button>
+        </div>
+
         {#if !isLogin}
-          <p class="text-xs text-white/50 mt-1">Minimum 8 characters</p>
+          <!-- Password Strength Indicator -->
+          <div class="mt-2 space-y-1">
+            <div class="flex items-center space-x-2 text-xs">
+              {#if passwordTouched}
+                <div class="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    class="h-full transition-all duration-300 {passwordValid ? 'bg-green-400 w-full' : 'bg-red-400 w-1/3'}"
+                  ></div>
+                </div>
+                <span class="{passwordValid ? 'text-green-400' : 'text-red-400'}">
+                  {passwordValid ? '✓ Strong' : '✗ Too short'}
+                </span>
+              {/if}
+            </div>
+            <p class="text-xs text-white/50">
+              {#if passwordTouched && !passwordValid}
+                <span class="text-red-400">Password must be at least 8 characters</span>
+              {:else}
+                Minimum 8 characters required
+              {/if}
+            </p>
+          </div>
         {/if}
       </div>
 
       <!-- Error Message -->
       {#if error}
         <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4 animate-slide-up">
-          <div class="flex items-center space-x-2">
-            <svg class="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="flex items-start space-x-3">
+            <svg class="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p class="text-red-400 text-sm">{error}</p>
+            <div class="flex-1">
+              <p class="text-red-400 text-sm font-medium mb-1">Error</p>
+              <p class="text-red-300 text-sm">{error}</p>
+            </div>
           </div>
         </div>
       {/if}
