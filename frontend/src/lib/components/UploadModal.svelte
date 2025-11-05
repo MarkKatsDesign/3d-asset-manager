@@ -120,12 +120,10 @@
 
       const model = gltf.scene;
 
-      // Center and scale model using the same approach as AssetViewer
+      // Calculate bounding box for the original model
       const box = new THREE.Box3().setFromObject(model);
       const center = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
-      const maxDim = Math.max(size.x, size.y, size.z);
-      const scale = 2 / maxDim;
 
       // Create a parent group to ensure proper centering
       const modelGroup = new THREE.Group();
@@ -134,14 +132,30 @@
       // Center the model within the group
       model.position.set(-center.x, -center.y, -center.z);
 
-      // Scale the group
+      // Normalize the model to fit in a standard size (makes camera calculation easier)
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const scale = 2 / maxDim; // Normalize to 2 units
       modelGroup.scale.setScalar(scale);
 
       scene.add(modelGroup);
 
-      // Position camera to look at center (use same distance as viewer)
-      const distance = 5;
-      camera.position.set(distance, distance, distance);
+      // Calculate optimal camera distance to fit entire model in view
+      // After scaling, the model fits in a 2-unit cube, so bounding sphere radius is roughly sqrt(3)
+      const boundingSphereRadius = Math.sqrt(3); // Diagonal of 2x2x2 cube / 2
+      const fov = camera.fov * (Math.PI / 180); // Convert to radians
+      const cameraDistance = boundingSphereRadius / Math.sin(fov / 2);
+
+      // Add padding factor to ensure model isn't touching edges (1.3 = 30% padding)
+      const paddingFactor = 1.3;
+      const distance = cameraDistance * paddingFactor;
+
+      // Position camera at 45-degree angle for nice thumbnail view
+      const angle = Math.PI / 4; // 45 degrees
+      camera.position.set(
+        distance * Math.cos(angle),
+        distance * 0.5, // Slightly elevated view
+        distance * Math.sin(angle)
+      );
       camera.lookAt(0, 0, 0);
 
       // Render
