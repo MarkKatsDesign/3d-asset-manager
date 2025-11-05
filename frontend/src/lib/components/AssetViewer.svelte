@@ -39,8 +39,9 @@
   function initScene() {
     // Scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a1a2e); // Lighter background for better visibility
-    scene.fog = new THREE.Fog(0x1a1a2e, 10, 50);
+    scene.background = new THREE.Color(0x2a2a3e); // Lighter background for better visibility
+    // Reduce fog or remove it to ensure model visibility
+    scene.fog = new THREE.Fog(0x2a2a3e, 20, 100);
 
     // Camera
     camera = new THREE.PerspectiveCamera(
@@ -53,6 +54,9 @@
 
     // Renderer
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+
+    console.log('Container dimensions:', container.clientWidth, container.clientHeight);
+
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
@@ -63,6 +67,8 @@
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.6; // Increase exposure to make models brighter by default
     container.appendChild(renderer.domElement);
+
+    console.log('Renderer initialized with size:', renderer.getSize(new THREE.Vector2()));
 
     // PMREM Generator for environment maps
     pmremGenerator = new THREE.PMREMGenerator(renderer);
@@ -309,8 +315,21 @@
         const maxDim = Math.max(size.x, size.y, size.z);
         const scale = 2 / maxDim;
 
-        model.position.sub(center);
-        model.scale.setScalar(scale);
+        // Debug logging
+        console.log('Model bounds:', { center, size, maxDim, scale });
+        console.log('Model before centering:', model.position);
+
+        // Create a parent group to ensure proper centering
+        const modelGroup = new THREE.Group();
+        modelGroup.add(model);
+
+        // Center the model within the group
+        model.position.set(-center.x, -center.y, -center.z);
+
+        // Scale the group
+        modelGroup.scale.setScalar(scale);
+
+        console.log('Model after centering:', model.position);
 
         // Enable shadows
         model.traverse((child) => {
@@ -320,13 +339,17 @@
           }
         });
 
-        scene.add(model);
+        scene.add(modelGroup);
 
-        // Adjust camera
-        camera.position.set(3, 3, 3);
+        // Adjust camera to ensure model is visible
+        const distance = 5;
+        camera.position.set(distance, distance, distance);
         camera.lookAt(0, 0, 0);
         controls.target.set(0, 0, 0);
         controls.update();
+
+        console.log('Camera position:', camera.position);
+        console.log('Camera looking at:', controls.target);
 
         loading = false;
       },
