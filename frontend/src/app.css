@@ -5,10 +5,6 @@
 @tailwind utilities;
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-
   body {
     @apply bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900;
     @apply text-white font-sans antialiased;
