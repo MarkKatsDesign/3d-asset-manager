@@ -49,8 +49,10 @@
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+  // Use physically correct light intensities for more realistic PBR lighting
+  renderer.physicallyCorrectLights = true;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2; // Slightly brighter exposure
+  renderer.toneMappingExposure = 1.6; // Increase exposure to make models brighter by default
     container.appendChild(renderer.domElement);
 
     // Controls
@@ -65,8 +67,12 @@
     // Lights - Enhanced lighting setup for better model visibility
 
     // Hemisphere light for natural ambient lighting
-    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
+  const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
     scene.add(hemisphereLight);
+
+  // Small ambient light to lift deep shadows (safe, low-risk)
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambientLight);
 
     // Main directional light (key light) - brighter and from the front-top
     const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
