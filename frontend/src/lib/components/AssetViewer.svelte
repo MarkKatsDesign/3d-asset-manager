@@ -55,8 +55,10 @@
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+  // Use physically correct light intensities for more realistic PBR lighting
+  renderer.physicallyCorrectLights = true;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2; // Slightly brighter exposure
+  renderer.toneMappingExposure = 1.6; // Increase exposure to make models brighter by default
     container.appendChild(renderer.domElement);
 
     // PMREM Generator for environment maps
@@ -78,8 +80,12 @@
     // Lights - Enhanced lighting setup for better model visibility
 
     // Hemisphere light for natural ambient lighting
-    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
+  const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
     scene.add(hemisphereLight);
+
+  // Small ambient light to lift deep shadows (safe, low-risk)
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambientLight);
 
     // Main directional light (key light) - brighter and from the front-top
     const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
@@ -171,21 +177,26 @@
 
   function updateEnvironment() {
     if (useEnvironment) {
-      if (!scene.environment) {
-        setupEnvironment();
-      } else {
-        updateEnvironmentIntensity();
+      setupEnvironment();
+      if (scene) {
+        scene.environment = scene.environment;  // Force environment update
+        scene.environmentIntensity = environmentIntensity;
       }
     } else {
-      scene.environment = null;
-      // Reset to default exposure
-      renderer.toneMappingExposure = 1.2;
+      if (scene) {
+        scene.environment = null;
+        scene.environmentIntensity = 0;
+      }
     }
   }
 
-  // Reactive updates for environment controls - watch the actual variables that change
-  $: if (scene && renderer) {
+  // Reactive updates for environment controls
+  $: if (scene && (useEnvironment !== undefined || environmentIntensity !== undefined)) {
     updateEnvironment();
+    // Force a render to update the scene
+    if (renderer) {
+      renderer.render(scene, camera);
+    }
   }
 
   // Separate reactive statement for intensity changes
