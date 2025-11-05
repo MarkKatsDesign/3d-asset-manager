@@ -528,7 +528,7 @@
 
                 <!-- Custom HDRI Upload -->
                 <div class="space-y-3 pt-2 border-t border-white/10">
-                  <label class="text-sm text-white/80 font-medium">Custom HDRI</label>
+                  <label for="hdri-file" class="text-sm text-white/80 font-medium">Custom HDRI</label>
 
                   {#if customHDRI}
                     <!-- Show when custom HDRI is loaded -->
@@ -553,7 +553,7 @@
                       accept=".hdr,.jpg,.jpeg,.png"
                       on:change={handleHDRIUpload}
                       class="hidden"
-                      id="hdri-upload"
+                      id="hdri-file"
                       disabled={isLoadingHDRI}
                     />
                     <label
