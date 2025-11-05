@@ -3,16 +3,22 @@
   import * as THREE from 'three';
   import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+  import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
   import { pb } from '../pocketbase';
 
   export let asset;
   export let onClose;
 
   let container;
-  let scene, camera, renderer, controls;
+  let scene, camera, renderer, controls, pmremGenerator;
   let animationId;
   let loading = true;
   let error = null;
+
+  // Environment controls
+  let useEnvironment = true;
+  let environmentIntensity = 1.0;
+  let showControls = false;
 
   onMount(() => {
     initScene();
@@ -52,6 +58,13 @@
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.2; // Slightly brighter exposure
     container.appendChild(renderer.domElement);
+
+    // PMREM Generator for environment maps
+    pmremGenerator = new THREE.PMREMGenerator(renderer);
+    pmremGenerator.compileEquirectangularShader();
+
+    // Setup default environment
+    setupEnvironment();
 
     // Controls
     controls = new OrbitControls(camera, renderer.domElement);
@@ -103,6 +116,62 @@
 
     // Start animation loop
     animate();
+  }
+
+  function setupEnvironment() {
+    // Create a simple gradient environment (studio-like)
+    const width = 512;
+    const height = 512;
+    const size = width * height;
+    const data = new Uint8Array(4 * size);
+
+    // Create a gradient from light to darker
+    for (let i = 0; i < size; i++) {
+      const stride = i * 4;
+      const y = Math.floor(i / width) / height;
+
+      // Top: light blue-white
+      // Bottom: darker blue-grey
+      const topColor = { r: 240, g: 245, b: 255 };
+      const bottomColor = { r: 100, g: 120, b: 150 };
+
+      const r = topColor.r + (bottomColor.r - topColor.r) * y;
+      const g = topColor.g + (bottomColor.g - topColor.g) * y;
+      const b = topColor.b + (bottomColor.b - topColor.b) * y;
+
+      data[stride] = r;
+      data[stride + 1] = g;
+      data[stride + 2] = b;
+      data[stride + 3] = 255;
+    }
+
+    // Create a DataTexture from the gradient
+    const texture = new THREE.DataTexture(data, width, height);
+    texture.needsUpdate = true;
+    texture.mapping = THREE.EquirectangularReflectionMapping;
+
+    // Generate PMREM for the environment
+    const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+
+    // Apply to scene
+    scene.environment = envMap;
+    scene.environmentIntensity = environmentIntensity;
+
+    texture.dispose();
+  }
+
+  function updateEnvironment() {
+    if (useEnvironment) {
+      setupEnvironment();
+      scene.environmentIntensity = environmentIntensity;
+    } else {
+      scene.environment = null;
+    }
+  }
+
+  // Reactive updates for environment controls
+  $: if (scene) {
+    updateEnvironment();
   }
 
   function loadModel() {
@@ -291,6 +360,60 @@
           <p>Right click + drag to pan</p>
           <p>Scroll to zoom</p>
         </div>
+
+        <!-- Environment Controls -->
+        <div class="absolute bottom-4 right-4">
+          <button
+            on:click={() => showControls = !showControls}
+            class="glass-button p-3 mb-2"
+            title="Environment settings"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          </button>
+
+          {#if showControls}
+            <div class="glass-card p-4 space-y-4 w-64 animate-slide-up">
+              <h3 class="font-semibold text-sm gradient-text">Environment</h3>
+
+              <!-- Environment Toggle -->
+              <div class="flex items-center justify-between">
+                <label for="env-toggle" class="text-sm text-white/80">Use Environment Map</label>
+                <button
+                  id="env-toggle"
+                  on:click={() => useEnvironment = !useEnvironment}
+                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {useEnvironment ? 'bg-indigo-500' : 'bg-white/20'}"
+                >
+                  <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {useEnvironment ? 'translate-x-6' : 'translate-x-1'}"></span>
+                </button>
+              </div>
+
+              <!-- Intensity Slider -->
+              {#if useEnvironment}
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <label for="intensity" class="text-sm text-white/80">Intensity</label>
+                    <span class="text-xs text-white/60">{environmentIntensity.toFixed(1)}</span>
+                  </div>
+                  <input
+                    id="intensity"
+                    type="range"
+                    min="0"
+                    max="2"
+                    step="0.1"
+                    bind:value={environmentIntensity}
+                    class="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+                  />
+                </div>
+              {/if}
+
+              <div class="pt-2 border-t border-white/10">
+                <p class="text-xs text-white/50">Environment map provides realistic lighting and reflections</p>
+              </div>
+            </div>
+          {/if}
+        </div>
       {/if}
     </div>
 
@@ -322,3 +445,44 @@
     </div>
   </div>
 </div>
+
+<style>
+  /* Custom slider styles */
+  input[type="range"].slider {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  input[type="range"].slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  input[type="range"].slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  input[type="range"].slider::-webkit-slider-track {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    height: 8px;
+  }
+
+  input[type="range"].slider::-moz-range-track {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    height: 8px;
+  }
+</style>
