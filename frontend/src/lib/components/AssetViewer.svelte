@@ -155,23 +155,44 @@
 
     // Apply to scene
     scene.environment = envMap;
-    scene.environmentIntensity = environmentIntensity;
+
+    // Set initial intensity
+    updateEnvironmentIntensity();
 
     texture.dispose();
   }
 
-  function updateEnvironment() {
-    if (useEnvironment) {
-      setupEnvironment();
-      scene.environmentIntensity = environmentIntensity;
-    } else {
-      scene.environment = null;
+  function updateEnvironmentIntensity() {
+    if (scene && scene.environment) {
+      // Update renderer exposure based on environment intensity
+      renderer.toneMappingExposure = 1.2 * environmentIntensity;
     }
   }
 
-  // Reactive updates for environment controls
-  $: if (scene) {
+  function updateEnvironment() {
+    if (useEnvironment) {
+      if (!scene.environment) {
+        setupEnvironment();
+      } else {
+        updateEnvironmentIntensity();
+      }
+    } else {
+      scene.environment = null;
+      // Reset to default exposure
+      renderer.toneMappingExposure = 1.2;
+    }
+  }
+
+  // Reactive updates for environment controls - watch the actual variables that change
+  $: if (scene && renderer) {
     updateEnvironment();
+  }
+
+  // Separate reactive statement for intensity changes
+  $: if (scene && renderer && useEnvironment) {
+    updateEnvironmentIntensity();
+    // Force a re-render by updating a dummy property
+    environmentIntensity;
   }
 
   function loadModel() {
