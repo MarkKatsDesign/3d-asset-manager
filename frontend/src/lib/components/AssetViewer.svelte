@@ -19,6 +19,9 @@
   let useEnvironment = true;
   let environmentIntensity = 1.0;
   let showControls = false;
+  let customHDRI = null;
+  let isLoadingHDRI = false;
+  let hdriError = null;
 
   onMount(() => {
     initScene();
@@ -177,10 +180,19 @@
 
   function updateEnvironment() {
     if (useEnvironment) {
-      setupEnvironment();
-      if (scene) {
-        scene.environment = scene.environment;  // Force environment update
-        scene.environmentIntensity = environmentIntensity;
+      if (customHDRI) {
+        // Use custom HDRI if available
+        scene.environment = customHDRI;
+        updateEnvironmentIntensity();
+        if (scene) {
+          scene.environmentIntensity = environmentIntensity;
+        }
+      } else {
+        setupEnvironment();
+        if (scene) {
+          scene.environment = scene.environment;  // Force environment update
+          scene.environmentIntensity = environmentIntensity;
+        }
       }
     } else {
       if (scene) {
@@ -188,6 +200,81 @@
         scene.environmentIntensity = 0;
       }
     }
+  }
+
+  async function handleHDRIUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file size (max 15MB for HDRI)
+    const maxSize = 15 * 1024 * 1024; // 15MB
+    if (file.size > maxSize) {
+      hdriError = `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Please use a file smaller than 15MB.`;
+      return;
+    }
+
+    hdriError = null;
+    isLoadingHDRI = true;
+
+    try {
+      const fileURL = URL.createObjectURL(file);
+      const fileName = file.name.toLowerCase();
+
+      let texture;
+
+      if (fileName.endsWith('.hdr')) {
+        // Load HDR file
+        const rgbeLoader = new RGBELoader();
+        texture = await new Promise((resolve, reject) => {
+          rgbeLoader.load(
+            fileURL,
+            (loadedTexture) => resolve(loadedTexture),
+            undefined,
+            (err) => reject(err)
+          );
+        });
+      } else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png')) {
+        // Load regular image as fallback
+        const textureLoader = new THREE.TextureLoader();
+        texture = await new Promise((resolve, reject) => {
+          textureLoader.load(
+            fileURL,
+            (loadedTexture) => resolve(loadedTexture),
+            undefined,
+            (err) => reject(err)
+          );
+        });
+      } else {
+        throw new Error('Unsupported file format. Please use .hdr, .jpg, or .png files.');
+      }
+
+      // Set texture mapping
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+
+      // Generate PMREM
+      const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+
+      // Apply to scene
+      customHDRI = envMap;
+      scene.environment = envMap;
+      updateEnvironmentIntensity();
+
+      // Cleanup
+      texture.dispose();
+      URL.revokeObjectURL(fileURL);
+
+      isLoadingHDRI = false;
+    } catch (err) {
+      console.error('Error loading HDRI:', err);
+      hdriError = err.message || 'Failed to load HDRI file. Please try another file.';
+      isLoadingHDRI = false;
+    }
+  }
+
+  function resetToDefaultEnvironment() {
+    customHDRI = null;
+    hdriError = null;
+    setupEnvironment();
   }
 
   // Reactive updates for environment controls
@@ -437,6 +524,64 @@
                     bind:value={environmentIntensity}
                     class="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
                   />
+                </div>
+
+                <!-- Custom HDRI Upload -->
+                <div class="space-y-3 pt-2 border-t border-white/10">
+                  <label class="text-sm text-white/80 font-medium">Custom HDRI</label>
+
+                  {#if customHDRI}
+                    <!-- Show when custom HDRI is loaded -->
+                    <div class="flex items-center justify-between bg-green-500/10 border border-green-500/30 rounded-lg p-2">
+                      <div class="flex items-center space-x-2">
+                        <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span class="text-xs text-green-400">Custom HDRI loaded</span>
+                      </div>
+                      <button
+                        on:click={resetToDefaultEnvironment}
+                        class="text-xs text-white/60 hover:text-white transition-colors underline"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  {:else}
+                    <!-- Upload button when no custom HDRI -->
+                    <input
+                      type="file"
+                      accept=".hdr,.jpg,.jpeg,.png"
+                      on:change={handleHDRIUpload}
+                      class="hidden"
+                      id="hdri-upload"
+                      disabled={isLoadingHDRI}
+                    />
+                    <label
+                      for="hdri-upload"
+                      class="glass-button w-full py-2 px-4 text-center cursor-pointer flex items-center justify-center space-x-2 {isLoadingHDRI ? 'opacity-50 cursor-not-allowed' : ''}"
+                    >
+                      {#if isLoadingHDRI}
+                        <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span class="text-sm">Processing...</span>
+                      {:else}
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <span class="text-sm">Upload HDRI</span>
+                      {/if}
+                    </label>
+                    <p class="text-xs text-white/40">Supports: .hdr, .jpg, .png (max 15MB)</p>
+                  {/if}
+
+                  <!-- Error message -->
+                  {#if hdriError}
+                    <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-2">
+                      <p class="text-xs text-red-400">{hdriError}</p>
+                    </div>
+                  {/if}
                 </div>
               {/if}
 
