@@ -149,16 +149,29 @@
           Password <span class="text-red-400">*</span>
         </label>
         <div class="relative">
-          <input
-            type={showPassword ? "text" : "password"}
-            id="password"
-            bind:value={password}
-            on:input={handlePasswordInput}
-            placeholder="••••••••"
-            class="glass-input w-full pr-12 {!isLogin && passwordTouched && !passwordValid ? 'border-red-400/50' : ''}"
-            disabled={loading}
-            autocomplete={isLogin ? "current-password" : "new-password"}
-          />
+          {#if showPassword}
+            <input
+              type="text"
+              id="password"
+              bind:value={password}
+              on:input={handlePasswordInput}
+              placeholder="••••••••"
+              class="glass-input w-full pr-12 {!isLogin && passwordTouched && !passwordValid ? 'border-red-400/50' : ''}"
+              disabled={loading}
+              autocomplete={isLogin ? "current-password" : "new-password"}
+            />
+          {:else}
+            <input
+              type="password"
+              id="password"
+              bind:value={password}
+              on:input={handlePasswordInput}
+              placeholder="••••••••"
+              class="glass-input w-full pr-12 {!isLogin && passwordTouched && !passwordValid ? 'border-red-400/50' : ''}"
+              disabled={loading}
+              autocomplete={isLogin ? "current-password" : "new-password"}
+            />
+          {/if}
           <button
             type="button"
             on:click={togglePasswordVisibility}
