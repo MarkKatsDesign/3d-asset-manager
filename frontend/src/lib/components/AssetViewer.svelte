@@ -169,15 +169,25 @@
   function updateEnvironment() {
     if (useEnvironment) {
       setupEnvironment();
-      scene.environmentIntensity = environmentIntensity;
+      if (scene) {
+        scene.environment = scene.environment;  // Force environment update
+        scene.environmentIntensity = environmentIntensity;
+      }
     } else {
-      scene.environment = null;
+      if (scene) {
+        scene.environment = null;
+        scene.environmentIntensity = 0;
+      }
     }
   }
 
   // Reactive updates for environment controls
-  $: if (scene) {
+  $: if (scene && (useEnvironment !== undefined || environmentIntensity !== undefined)) {
     updateEnvironment();
+    // Force a render to update the scene
+    if (renderer) {
+      renderer.render(scene, camera);
+    }
   }
 
   function loadModel() {
