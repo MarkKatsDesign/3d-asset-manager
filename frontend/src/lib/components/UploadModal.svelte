@@ -94,27 +94,48 @@
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   }
+
+  function handleDropZoneClick() {
+    document.getElementById('file-input')?.click();
+  }
+
+  function handleDropZoneKeydown(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleDropZoneClick();
+    }
+  }
+
+  function handleOverlayKeydown(e) {
+    if (e.key === 'Escape') {
+      onClose();
+    }
+  }
 </script>
 
 <!-- Modal Overlay -->
+<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 <div
   class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
   on:click={onClose}
-  on:keydown={(e) => e.key === 'Escape' && onClose()}
+  on:keydown={handleOverlayKeydown}
   role="button"
   tabindex="0"
+  aria-label="Close modal"
 >
   <!-- Modal Content -->
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
   <div
     class="glass-modal w-full max-w-2xl animate-slide-up"
     on:click|stopPropagation
     on:keydown|stopPropagation
     role="dialog"
     aria-modal="true"
+    aria-labelledby="modal-title"
   >
     <!-- Header -->
     <div class="flex items-center justify-between p-6 border-b border-white/10">
-      <h2 class="text-2xl font-bold gradient-text">Upload 3D Asset</h2>
+      <h2 id="modal-title" class="text-2xl font-bold gradient-text">Upload 3D Asset</h2>
       <button
         on:click={onClose}
         class="p-2 rounded-lg hover:bg-white/10 transition-colors"
@@ -129,13 +150,17 @@
     <!-- Form -->
     <form on:submit|preventDefault={handleSubmit} class="p-6 space-y-6">
       <!-- File Drop Zone -->
+      <!-- svelte-ignore a11y-no-static-element-interactions -->
       <div
-        class="border-2 border-dashed rounded-2xl p-8 text-center transition-all {isDragging ? 'border-indigo-400 bg-indigo-500/10' : 'border-white/20'}"
+        class="border-2 border-dashed rounded-2xl p-8 text-center transition-all cursor-pointer {isDragging ? 'border-indigo-400 bg-indigo-500/10' : 'border-white/20'}"
         on:dragover={handleDragOver}
         on:dragleave={handleDragLeave}
         on:drop={handleDrop}
+        on:click={handleDropZoneClick}
+        on:keydown={handleDropZoneKeydown}
         role="button"
         tabindex="0"
+        aria-label="Upload file drop zone. Click or press Enter to browse files, or drag and drop a file here."
       >
         {#if file}
           <!-- File Selected -->
