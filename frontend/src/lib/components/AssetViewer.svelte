@@ -201,28 +201,38 @@
     const url = pb.files.getUrl(asset, asset.file);
     window.open(url, '_blank');
   }
+
+  function handleOverlayKeydown(e) {
+    if (e.key === 'Escape') {
+      onClose();
+    }
+  }
 </script>
 
 <!-- Modal Overlay -->
+<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 <div
   class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
   on:click={onClose}
-  on:keydown={(e) => e.key === 'Escape' && onClose()}
+  on:keydown={handleOverlayKeydown}
   role="button"
   tabindex="0"
+  aria-label="Close viewer modal"
 >
   <!-- Modal Content -->
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
   <div
     class="glass-modal w-full max-w-6xl h-[90vh] flex flex-col animate-slide-up"
     on:click|stopPropagation
     on:keydown|stopPropagation
     role="dialog"
     aria-modal="true"
+    aria-labelledby="viewer-title"
   >
     <!-- Header -->
     <div class="flex items-center justify-between p-6 border-b border-white/10">
       <div class="flex-1">
-        <h2 class="text-2xl font-bold gradient-text">{asset.name}</h2>
+        <h2 id="viewer-title" class="text-2xl font-bold gradient-text">{asset.name}</h2>
         {#if asset.description}
           <p class="text-white/60 mt-1">{asset.description}</p>
         {/if}
