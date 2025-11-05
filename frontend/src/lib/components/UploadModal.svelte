@@ -120,19 +120,28 @@
 
       const model = gltf.scene;
 
-      // Center and scale model
+      // Center and scale model using the same approach as AssetViewer
       const box = new THREE.Box3().setFromObject(model);
       const center = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
       const maxDim = Math.max(size.x, size.y, size.z);
       const scale = 2 / maxDim;
 
-      model.position.sub(center);
-      model.scale.setScalar(scale);
+      // Create a parent group to ensure proper centering
+      const modelGroup = new THREE.Group();
+      modelGroup.add(model);
 
-      scene.add(model);
+      // Center the model within the group
+      model.position.set(-center.x, -center.y, -center.z);
 
-      // Position camera to look at center
+      // Scale the group
+      modelGroup.scale.setScalar(scale);
+
+      scene.add(modelGroup);
+
+      // Position camera to look at center (use same distance as viewer)
+      const distance = 5;
+      camera.position.set(distance, distance, distance);
       camera.lookAt(0, 0, 0);
 
       // Render
