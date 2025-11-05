@@ -30,8 +30,8 @@
   function initScene() {
     // Scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0a1a);
-    scene.fog = new THREE.Fog(0x0a0a1a, 10, 50);
+    scene.background = new THREE.Color(0x1a1a2e); // Lighter background for better visibility
+    scene.fog = new THREE.Fog(0x1a1a2e, 10, 50);
 
     // Camera
     camera = new THREE.PerspectiveCamera(
@@ -49,6 +49,8 @@
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2; // Slightly brighter exposure
     container.appendChild(renderer.domElement);
 
     // Controls
@@ -60,11 +62,14 @@
     controls.maxDistance = 50;
     controls.maxPolarAngle = Math.PI;
 
-    // Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambientLight);
+    // Lights - Enhanced lighting setup for better model visibility
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    // Hemisphere light for natural ambient lighting
+    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
+    scene.add(hemisphereLight);
+
+    // Main directional light (key light) - brighter and from the front-top
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
     directionalLight.position.set(5, 10, 7.5);
     directionalLight.castShadow = true;
     directionalLight.shadow.camera.near = 0.1;
@@ -73,13 +78,23 @@
     directionalLight.shadow.mapSize.height = 2048;
     scene.add(directionalLight);
 
-    // Add point lights for better illumination
-    const pointLight1 = new THREE.PointLight(0x6366f1, 0.5);
-    pointLight1.position.set(-5, 5, -5);
+    // Fill light from the opposite side
+    const fillLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    fillLight.position.set(-5, 5, -5);
+    scene.add(fillLight);
+
+    // Back light (rim light) for edge definition
+    const backLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    backLight.position.set(0, 5, -10);
+    scene.add(backLight);
+
+    // Accent point lights for visual interest (softer colors)
+    const pointLight1 = new THREE.PointLight(0x6366f1, 0.3);
+    pointLight1.position.set(-8, 3, -8);
     scene.add(pointLight1);
 
-    const pointLight2 = new THREE.PointLight(0xa855f7, 0.5);
-    pointLight2.position.set(5, 5, 5);
+    const pointLight2 = new THREE.PointLight(0xa855f7, 0.3);
+    pointLight2.position.set(8, 3, 8);
     scene.add(pointLight2);
 
     // Grid helper
