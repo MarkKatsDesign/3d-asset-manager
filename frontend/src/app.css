@@ -6,7 +6,8 @@
 
 @layer base {
   * {
-    @apply border-border;
+    /* Use box-border globally (was `border-border` which is not a built-in utility) */
+    @apply box-border;
   }
 
   body {
