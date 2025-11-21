@@ -41,10 +41,25 @@
     if (!dateString) return 'Never';
     return new Date(dateString).toLocaleString();
   }
+
+  function handleOverlayClick(e) {
+    // Only close if clicking directly on the overlay, not its children
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  }
+
+  function handleKeydown(e) {
+    if (e.key === 'Escape') {
+      onClose();
+    }
+  }
 </script>
 
-<div class="modal-overlay" on:click={onClose}>
-  <div class="modal-content" on:click|stopPropagation>
+<svelte:window on:keydown={handleKeydown} />
+
+<div class="modal-overlay" on:click={handleOverlayClick} role="presentation">
+  <div class="modal-content" role="dialog" aria-modal="true">
     <!-- Header -->
     <div class="modal-header">
       <h2 class="text-3xl font-bold gradient-text">Manage Watched Folders</h2>
