@@ -1,0 +1,212 @@
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+import { DatabaseService } from './services/database.js';
+import { FileWatcherService } from './services/fileWatcher.js';
+import { ThumbnailService } from './services/thumbnail.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+let mainWindow: BrowserWindow | null = null;
+let dbService: DatabaseService;
+let fileWatcherService: FileWatcherService;
+let thumbnailService: ThumbnailService;
+
+const isDev = process.env.NODE_ENV === 'development';
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1400,
+    height: 900,
+    minWidth: 1000,
+    minHeight: 600,
+    webPreferences: {
+      preload: path.join(__dirname, '../preload/preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false
+    },
+    icon: path.join(__dirname, '../../resources/icon.png'),
+    title: '3D Asset Manager'
+  });
+
+  // Load the app
+  if (isDev) {
+    mainWindow.loadURL('http://localhost:5173');
+    mainWindow.webContents.openDevTools();
+  } else {
+    mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+  }
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+}
+
+// Initialize services
+async function initializeServices() {
+  const userDataPath = app.getPath('userData');
+  const dbPath = path.join(userDataPath, 'assets.db');
+
+  dbService = new DatabaseService(dbPath);
+  thumbnailService = new ThumbnailService(dbService);
+  fileWatcherService = new FileWatcherService(dbService, thumbnailService);
+
+  // Load watched folders from database and start watching
+  const watchedFolders = dbService.getWatchedFolders();
+  for (const folder of watchedFolders) {
+    if (folder.enabled) {
+      await fileWatcherService.addWatchedFolder(folder.path);
+    }
+  }
+}
+
+// IPC Handlers
+
+// Get all assets
+ipcMain.handle('db:getAssets', async () => {
+  return dbService.getAllAssets();
+});
+
+// Get single asset
+ipcMain.handle('db:getAsset', async (_event, id: number) => {
+  return dbService.getAsset(id);
+});
+
+// Search assets
+ipcMain.handle('db:searchAssets', async (_event, query: string) => {
+  return dbService.searchAssets(query);
+});
+
+// Get assets by tag
+ipcMain.handle('db:getAssetsByTag', async (_event, tag: string) => {
+  return dbService.getAssetsByTag(tag);
+});
+
+// Update asset metadata
+ipcMain.handle('db:updateAsset', async (_event, id: number, data: any) => {
+  return dbService.updateAsset(id, data);
+});
+
+// Delete asset
+ipcMain.handle('db:deleteAsset', async (_event, id: number) => {
+  return dbService.deleteAsset(id);
+});
+
+// Get all tags
+ipcMain.handle('db:getAllTags', async () => {
+  return dbService.getAllTags();
+});
+
+// Get watched folders
+ipcMain.handle('db:getWatchedFolders', async () => {
+  return dbService.getWatchedFolders();
+});
+
+// Add watched folder
+ipcMain.handle('folders:add', async () => {
+  const result = await dialog.showOpenDialog(mainWindow!, {
+    properties: ['openDirectory']
+  });
+
+  if (!result.canceled && result.filePaths.length > 0) {
+    const folderPath = result.filePaths[0];
+    const folder = dbService.addWatchedFolder(folderPath);
+    await fileWatcherService.addWatchedFolder(folderPath);
+    return folder;
+  }
+  return null;
+});
+
+// Remove watched folder
+ipcMain.handle('folders:remove', async (_event, id: number) => {
+  const folder = dbService.getWatchedFolder(id);
+  if (folder) {
+    fileWatcherService.removeWatchedFolder(folder.path);
+    dbService.removeWatchedFolder(id);
+    return true;
+  }
+  return false;
+});
+
+// Toggle folder watching
+ipcMain.handle('folders:toggle', async (_event, id: number, enabled: boolean) => {
+  const folder = dbService.updateWatchedFolder(id, { enabled });
+  if (folder) {
+    if (enabled) {
+      await fileWatcherService.addWatchedFolder(folder.path);
+    } else {
+      fileWatcherService.removeWatchedFolder(folder.path);
+    }
+    return folder;
+  }
+  return null;
+});
+
+// Rescan folder
+ipcMain.handle('folders:rescan', async (_event, id: number) => {
+  const folder = dbService.getWatchedFolder(id);
+  if (folder) {
+    await fileWatcherService.rescanFolder(folder.path);
+    return true;
+  }
+  return false;
+});
+
+// Get file path for asset
+ipcMain.handle('file:getPath', async (_event, id: number) => {
+  const asset = dbService.getAsset(id);
+  return asset?.filePath || null;
+});
+
+// Get thumbnail as base64
+ipcMain.handle('file:getThumbnail', async (_event, id: number) => {
+  const thumbnail = dbService.getThumbnail(id);
+  if (thumbnail) {
+    return `data:image/jpeg;base64,${thumbnail.toString('base64')}`;
+  }
+  return null;
+});
+
+// App lifecycle
+app.whenReady().then(async () => {
+  await initializeServices();
+  createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    fileWatcherService?.cleanup();
+    app.quit();
+  }
+});
+
+app.on('before-quit', () => {
+  fileWatcherService?.cleanup();
+});
+
+// Send updates to renderer when new assets are discovered
+export function notifyAssetAdded(asset: any) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('asset:added', asset);
+  }
+}
+
+export function notifyAssetUpdated(asset: any) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('asset:updated', asset);
+  }
+}
+
+export function notifyAssetRemoved(id: number) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('asset:removed', id);
+  }
+}

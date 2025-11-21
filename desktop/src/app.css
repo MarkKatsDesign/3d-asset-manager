@@ -1,0 +1,99 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    /* Use box-border globally (was `border-border` which is not a built-in utility) */
+    @apply box-border;
+  }
+
+  body {
+    @apply bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900;
+    @apply text-white font-sans antialiased;
+    @apply min-h-screen;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  /* Glassmorphism Card */
+  .glass-card {
+    @apply bg-white/10 backdrop-blur-lg border border-white/20;
+    @apply rounded-2xl shadow-2xl;
+    @apply transition-all duration-300;
+  }
+
+  .glass-card:hover {
+    @apply bg-white/15 border-white/30;
+    @apply shadow-[0_8px_32px_0_rgba(99,102,241,0.37)];
+    @apply transform -translate-y-1;
+  }
+
+  /* Glass Button */
+  .glass-button {
+    @apply bg-white/10 backdrop-blur-md border border-white/20;
+    @apply rounded-xl px-6 py-3;
+    @apply transition-all duration-300;
+    @apply hover:bg-white/20 hover:border-white/30;
+    @apply active:scale-95;
+  }
+
+  /* Glass Input */
+  .glass-input {
+    @apply bg-white/5 backdrop-blur-md border border-white/20;
+    @apply rounded-xl px-4 py-3;
+    @apply text-white placeholder-white/50;
+    @apply focus:outline-none focus:border-indigo-400/50 focus:ring-2 focus:ring-indigo-400/30;
+    @apply transition-all duration-300;
+  }
+
+  /* Glass Modal */
+  .glass-modal {
+    @apply bg-white/10 backdrop-blur-2xl border border-white/20;
+    @apply rounded-3xl shadow-2xl;
+  }
+
+  /* Gradient Text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400;
+    @apply bg-clip-text text-transparent;
+  }
+
+  /* Scrollbar Styles */
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-white/5 rounded-full;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-white/20 rounded-full;
+    @apply hover:bg-white/30;
+  }
+}
+
+/* Loading Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.shimmer {
+  animation: shimmer 2s infinite;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  background-size: 1000px 100%;
+}

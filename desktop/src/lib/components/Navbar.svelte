@@ -1,0 +1,52 @@
+<script>
+  import { createEventDispatcher } from 'svelte';
+  import { folderStore } from '../stores/folderStore';
+
+  const dispatch = createEventDispatcher();
+
+  function handleManageFoldersClick() {
+    dispatch('manageFolders');
+  }
+</script>
+
+<nav class="fixed top-0 left-0 right-0 z-50 glass-card border-b border-white/10 rounded-none">
+  <div class="max-w-[1920px] mx-auto px-8 py-4">
+    <div class="flex items-center justify-between">
+      <!-- Logo & Brand -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold gradient-text">3D Asset Manager</h1>
+          <p class="text-xs text-white/60">Preview your local 3D models</p>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center space-x-4">
+        <!-- Folder Count Badge -->
+        {#if $folderStore.folders.length > 0}
+          <div class="glass-card px-3 py-1 text-sm">
+            <span class="text-white/60">Watching:</span>
+            <span class="ml-1 font-semibold gradient-text">{$folderStore.folders.length}</span>
+            <span class="text-white/60 ml-1">folder{$folderStore.folders.length !== 1 ? 's' : ''}</span>
+          </div>
+        {/if}
+
+        <!-- Manage Folders Button -->
+        <button
+          on:click={handleManageFoldersClick}
+          class="glass-button flex items-center space-x-2 font-medium"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
+          <span>Manage Folders</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
