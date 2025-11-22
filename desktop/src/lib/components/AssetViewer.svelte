@@ -29,6 +29,7 @@
   let transparentBackground = false;
   let backgroundColor = '#2a2a3e'; // Default studio blue
   let isLightBackground = false; // Tracks if current background is light
+  let isDarkCard = false; // Tracks if card should use dark styling (for light backgrounds)
 
   // Screenshot settings
   let screenshotQuality = '1080p';
@@ -519,13 +520,22 @@
   }
 
   // Update isLightBackground when backgroundColor changes (for color picker)
-  $: if (backgroundColor && !transparentBackground) {
-    const luminance = getColorLuminance(backgroundColor);
-    isLightBackground = luminance > 0.5;
+  $: {
+    if (backgroundColor && !transparentBackground) {
+      const luminance = getColorLuminance(backgroundColor);
+      isLightBackground = luminance > 0.5;
+      console.log('Background color:', backgroundColor, 'Luminance:', luminance, 'isLight:', isLightBackground);
+    } else {
+      isLightBackground = false;
+      console.log('Transparent or no bg, isLightBackground:', false);
+    }
   }
 
   // Derived reactive flag for card styling
-  $: isDarkCard = isLightBackground && !transparentBackground;
+  $: {
+    isDarkCard = isLightBackground && !transparentBackground;
+    console.log('isDarkCard:', isDarkCard, 'isLight:', isLightBackground, 'transparent:', transparentBackground);
+  }
 
   async function loadModel() {
     try {
@@ -936,7 +946,7 @@
                 <div class="space-y-2">
                   <div class="flex items-center justify-between">
                     <label for="intensity" class="text-sm {isDarkCard ? 'text-white' : 'text-white/80'}">Intensity</label>
-                    <span class="text-xs {isDarkCard ? 'text-white/70' : 'text-white/60'}">{environmentIntensity.toFixed(1)}</span>
+                    <span class="text-xs {isDarkCard ? 'text-white' : 'text-white/60'}">{environmentIntensity.toFixed(1)}</span>
                   </div>
                   <input
                     id="intensity"
@@ -996,7 +1006,7 @@
                         <span class="text-sm">Upload HDRI</span>
                       {/if}
                     </label>
-                    <p class="text-xs {isDarkCard ? 'text-white/60' : 'text-white/40'}">Supports: .hdr, .jpg, .png (max 15MB)</p>
+                    <p class="text-xs {isDarkCard ? 'text-white/90' : 'text-white/40'}">Supports: .hdr, .jpg, .png (max 15MB)</p>
                   {/if}
 
                   <!-- Error message -->
@@ -1009,7 +1019,7 @@
               {/if}
 
               <div class="pt-2 border-t {isDarkCard ? 'border-white/20' : 'border-white/10'}">
-                <p class="text-xs {isDarkCard ? 'text-white/60' : 'text-white/50'}">Environment map provides realistic lighting and reflections</p>
+                <p class="text-xs {isDarkCard ? 'text-white/90' : 'text-white/50'}">Environment map provides realistic lighting and reflections</p>
               </div>
             </div>
           <!-- Notes Section -->
@@ -1017,7 +1027,7 @@
             <!-- Header - Always visible -->
             <button
               on:click={() => notesExpanded = !notesExpanded}
-              class="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
+              class="w-full p-4 flex items-center justify-between transition-colors {isDarkCard ? 'hover:bg-black/10' : 'hover:bg-indigo-500/10'}"
             >
               <div class="flex items-center space-x-2">
                 <svg class="w-4 h-4 {isDarkCard ? 'text-white' : 'text-white/80'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1027,12 +1037,12 @@
               </div>
               <div class="flex items-center space-x-2">
                 {#if savingNotes}
-                  <span class="text-xs {isDarkCard ? 'text-white/60' : 'text-white/50'}">Saving...</span>
+                  <span class="text-xs {isDarkCard ? 'text-white' : 'text-white/50'}">Saving...</span>
                 {:else if notesSaved}
                   <span class="text-xs text-green-400">Saved</span>
                 {/if}
                 <svg
-                  class="w-4 h-4 transition-transform {notesExpanded ? 'rotate-180' : ''} {isDarkCard ? 'text-white/60' : 'text-white/40'}"
+                  class="w-4 h-4 transition-transform {notesExpanded ? 'rotate-180' : ''} {isDarkCard ? 'text-white' : 'text-white/40'}"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -1049,9 +1059,9 @@
                   bind:value={description}
                   on:input={handleNotesInput}
                   placeholder="Add notes or description for this model..."
-                  class="w-full h-32 px-3 py-2 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all {isDarkCard ? 'bg-white/10 text-gray-900 placeholder-gray-500 border border-white/20' : 'bg-white/5 text-white/90 placeholder-white/30 border border-white/10'}"
+                  class="w-full h-32 px-3 py-2 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all bg-white/90 text-gray-900 placeholder-gray-500 border border-gray-300"
                 ></textarea>
-                <p class="text-xs {isDarkCard ? 'text-white/50' : 'text-white/40'}">Changes save automatically</p>
+                <p class="text-xs {isDarkCard ? 'text-white/90' : 'text-white/40'}">Changes save automatically</p>
               </div>
             {/if}
           </div>
