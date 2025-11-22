@@ -1,9 +1,12 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
 
+/* stylelint-disable at-rule-no-unknown */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* stylelint-enable at-rule-no-unknown */
 
+/* stylelint-disable at-rule-no-unknown */
 @layer base {
   * {
     /* Use box-border globally (was `border-border` which is not a built-in utility) */
@@ -17,7 +20,9 @@
     font-family: "Inter", system-ui, sans-serif;
   }
 }
+/* stylelint-enable at-rule-no-unknown */
 
+/* stylelint-disable at-rule-no-unknown */
 @layer components {
   /* Glassmorphism Card */
   .glass-card {
@@ -76,6 +81,7 @@
     @apply hover:bg-white/30;
   }
 }
+/* stylelint-enable at-rule-no-unknown */
 
 /* Loading Animation */
 @keyframes shimmer {

@@ -41,17 +41,29 @@ export async function generateThumbnail(assetId, width = 400, height = 400) {
     // Create camera
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
 
-    // Add lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    // Add enhanced lighting for better visibility
+    // Hemisphere light for natural ambient lighting (sky + ground)
+    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+    scene.add(hemisphereLight);
+
+    // Ambient light for overall base illumination
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
     scene.add(ambientLight);
 
-    const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight1.position.set(5, 5, 5);
-    scene.add(directionalLight1);
+    // Key light (main light from front-top-right)
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    keyLight.position.set(5, 8, 5);
+    scene.add(keyLight);
 
-    const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
-    directionalLight2.position.set(-5, 3, -5);
-    scene.add(directionalLight2);
+    // Fill light (softer light from front-left to fill shadows)
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    fillLight.position.set(-5, 3, 5);
+    scene.add(fillLight);
+
+    // Back light (rim light from behind to separate model from background)
+    const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    backLight.position.set(0, 3, -5);
+    scene.add(backLight);
 
     // Load the model
     const loader = new GLTFLoader();
@@ -77,10 +89,25 @@ export async function generateThumbnail(assetId, width = 400, height = 400) {
 
           scene.add(modelGroup);
 
-          // Position camera for a nice view
-          const distance = 3.5;
-          camera.position.set(distance, distance * 0.7, distance);
-          camera.lookAt(0, 0, 0);
+          // Smart camera positioning based on model bounds
+          // Calculate bounding sphere for optimal framing
+          const boundingBox = new THREE.Box3().setFromObject(modelGroup);
+          const boundingSphere = new THREE.Sphere();
+          boundingBox.getBoundingSphere(boundingSphere);
+
+          // Calculate optimal camera distance based on model size and FOV
+          const fov = camera.fov * (Math.PI / 180); // Convert to radians
+          const cameraDistance = Math.abs(boundingSphere.radius / Math.sin(fov / 2)) * 1.3; // 1.3 for padding
+
+          // Position camera at a nice angle (slightly elevated, 45-degree view)
+          const cameraOffset = new THREE.Vector3(
+            cameraDistance * 0.7,  // X: slight right
+            cameraDistance * 0.5,  // Y: elevated
+            cameraDistance * 0.7   // Z: distance from front
+          );
+
+          camera.position.copy(boundingSphere.center).add(cameraOffset);
+          camera.lookAt(boundingSphere.center);
 
           // Render the scene
           renderer.render(scene, camera);

@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Manrope:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -11,10 +11,89 @@
   }
 
   body {
-    @apply bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900;
-    @apply text-white font-sans antialiased;
+    @apply font-sans antialiased;
     @apply min-h-screen;
     font-family: "Inter", system-ui, sans-serif;
+  }
+
+  /* Theme-specific text color overrides */
+  body[data-theme="macosLight"] {
+    /* Override all white text to dark for light theme */
+    color: rgb(17, 24, 39) !important; /* gray-900 */
+  }
+
+  body[data-theme="macosLight"] .text-white {
+    color: rgb(17, 24, 39) !important; /* gray-900 */
+  }
+
+  body[data-theme="macosLight"] .text-white\/70 {
+    color: rgb(75, 85, 99) !important; /* gray-600 */
+  }
+
+  body[data-theme="macosLight"] .text-white\/60 {
+    color: rgb(107, 114, 128) !important; /* gray-500 */
+  }
+
+  body[data-theme="macosLight"] .text-white\/40 {
+    color: rgb(156, 163, 175) !important; /* gray-400 */
+  }
+
+  body[data-theme="macosLight"] .glass-card {
+    background: rgba(255, 255, 255, 0.8) !important;
+    border-color: rgb(229, 231, 235) !important; /* gray-200 */
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1) !important;
+  }
+
+  body[data-theme="macosLight"] .glass-card:hover {
+    background: rgba(255, 255, 255, 1) !important; /* white */
+    border-color: rgb(209, 213, 219) !important; /* gray-300 */
+    box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.15), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
+  }
+
+  body[data-theme="macosLight"] .glass-button {
+    background: rgba(243, 244, 246, 0.8) !important; /* gray-100 */
+    border-color: rgb(229, 231, 235) !important; /* gray-200 */
+    color: rgb(17, 24, 39) !important; /* gray-900 */
+  }
+
+  body[data-theme="macosLight"] .glass-button:hover {
+    background: rgba(229, 231, 235, 1) !important; /* gray-200 */
+    border-color: rgb(209, 213, 219) !important; /* gray-300 */
+  }
+
+  /* Search input styling for light theme */
+  body[data-theme="macosLight"] input[type="text"],
+  body[data-theme="macosLight"] input[type="search"],
+  body[data-theme="macosLight"] input {
+    background: rgb(243, 244, 246) !important; /* gray-100 */
+    border-color: rgb(209, 213, 219) !important; /* gray-300 */
+    color: rgb(17, 24, 39) !important; /* gray-900 */
+  }
+
+  body[data-theme="macosLight"] input::placeholder {
+    color: rgb(156, 163, 175) !important; /* gray-400 */
+  }
+
+  body[data-theme="macosLight"] input:focus {
+    background: rgb(255, 255, 255) !important; /* white */
+    border-color: rgb(59, 130, 246) !important; /* blue-500 */
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3) !important; /* blue ring effect */
+  }
+
+  /* Search icon colors for light theme */
+  body[data-theme="macosLight"] .text-white\/50 {
+    color: rgb(107, 114, 128) !important; /* gray-500 */
+  }
+
+  body[data-theme="macosLight"] .text-white\/50:hover,
+  body[data-theme="macosLight"] .hover\:text-white:hover {
+    color: rgb(17, 24, 39) !important; /* gray-900 */
+  }
+
+  /* macOS Dark theme text colors */
+  body[data-theme="macosDark"] .text-white {
+    color: rgb(244, 244, 245) !important; /* zinc-100 */
   }
 }
 

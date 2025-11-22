@@ -1,11 +1,41 @@
 <script>
   import { createEventDispatcher } from 'svelte';
   import { folderStore } from '../stores/folderStore';
+  import { localAssetStore } from '../stores/localAssetStore';
+  import ThemeSwitcher from './ThemeSwitcher.svelte';
 
   const dispatch = createEventDispatcher();
 
+  let isRegenerating = false;
+
   function handleManageFoldersClick() {
     dispatch('manageFolders');
+  }
+
+  async function handleRegenerateThumbnails() {
+    if (isRegenerating) return;
+
+    const confirmed = confirm('This will regenerate all thumbnails with improved lighting and framing. This may take a few minutes. Continue?');
+    if (!confirmed) return;
+
+    isRegenerating = true;
+    console.log('Starting thumbnail regeneration...');
+
+    try {
+      const result = await localAssetStore.regenerateAllThumbnails();
+      if (result.success) {
+        alert(`Thumbnail regeneration complete!\n\n✓ Successful: ${result.successful}\n✗ Failed: ${result.failed}\n\nRefresh the page to see the updated thumbnails.`);
+        // Reload the page to show new thumbnails
+        window.location.reload();
+      } else {
+        alert(`Error regenerating thumbnails: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert(`Error regenerating thumbnails: ${error.message}`);
+    } finally {
+      isRegenerating = false;
+    }
   }
 </script>
 
@@ -35,6 +65,22 @@
             <span class="text-white/60 ml-1">folder{$folderStore.folders.length !== 1 ? 's' : ''}</span>
           </div>
         {/if}
+
+        <!-- Theme Switcher -->
+        <ThemeSwitcher />
+
+        <!-- Regenerate Thumbnails Button -->
+        <button
+          on:click={handleRegenerateThumbnails}
+          disabled={isRegenerating}
+          class="glass-button flex items-center space-x-2 font-medium {isRegenerating ? 'opacity-50 cursor-not-allowed' : ''}"
+          title="Regenerate all thumbnails with improved lighting"
+        >
+          <svg class="w-5 h-5 {isRegenerating ? 'animate-spin' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <span>{isRegenerating ? 'Regenerating...' : 'Regenerate Thumbnails'}</span>
+        </button>
 
         <!-- Manage Folders Button -->
         <button

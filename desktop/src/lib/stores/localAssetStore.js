@@ -88,6 +88,43 @@ function createLocalAssetStore() {
       }
     },
 
+    regenerateAllThumbnails: async () => {
+      try {
+        // Clear all existing thumbnails
+        const clearedCount = await window.electronAPI.clearAllThumbnails();
+        console.log(`Cleared ${clearedCount} thumbnails`);
+
+        // Get all current assets
+        const assets = await window.electronAPI.getAssets();
+        console.log(`Regenerating thumbnails for ${assets.length} assets...`);
+
+        // Generate thumbnails for all assets
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const asset of assets) {
+          try {
+            console.log(`[${successCount + failCount + 1}/${assets.length}] Generating thumbnail for: ${asset.name}`);
+
+            const thumbnailData = await generateThumbnail(asset.id);
+            await window.electronAPI.saveThumbnail(asset.id, thumbnailData);
+
+            successCount++;
+            console.log(`✓ Thumbnail generated for ${asset.name}`);
+          } catch (error) {
+            failCount++;
+            console.error(`✗ Error generating thumbnail for ${asset.name}:`, error);
+          }
+        }
+
+        console.log(`Thumbnail regeneration complete: ${successCount} successful, ${failCount} failed`);
+        return { success: true, total: assets.length, successful: successCount, failed: failCount };
+      } catch (error) {
+        console.error('Error regenerating thumbnails:', error);
+        return { success: false, error: error.message };
+      }
+    },
+
     getAsset: async (id) => {
       try {
         return await window.electronAPI.getAsset(id);

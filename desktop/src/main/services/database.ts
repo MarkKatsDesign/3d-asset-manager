@@ -206,6 +206,12 @@ export class DatabaseService {
     stmt.run(assetId);
   }
 
+  clearAllThumbnails(): number {
+    const stmt = this.db.prepare('DELETE FROM thumbnails');
+    const result = stmt.run();
+    return result.changes;
+  }
+
   // Watched folder operations
 
   getWatchedFolders(): WatchedFolder[] {

@@ -83,8 +83,16 @@
 
 <!-- Click outside to close menu -->
 {#if showUserMenu}
-  <div
-    class="fixed inset-0 z-40"
+  <button
+    type="button"
+    aria-label="Close user menu"
+    class="fixed inset-0 z-40 bg-transparent p-0 m-0 border-0"
     on:click={() => showUserMenu = false}
-  ></div>
+    on:keydown={(e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        showUserMenu = false;
+      }
+    }}
+  ></button>
 {/if}

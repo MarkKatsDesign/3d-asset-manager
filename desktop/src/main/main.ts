@@ -201,6 +201,18 @@ ipcMain.handle('file:saveThumbnail', async (_event, id: number, thumbnailData: s
   }
 });
 
+// Clear all thumbnails
+ipcMain.handle('thumbnails:clearAll', async () => {
+  try {
+    const count = dbService.clearAllThumbnails();
+    console.log(`Cleared ${count} thumbnails`);
+    return count;
+  } catch (error) {
+    console.error('Error clearing thumbnails:', error);
+    return 0;
+  }
+});
+
 // App lifecycle
 app.whenReady().then(async () => {
   await initializeServices();

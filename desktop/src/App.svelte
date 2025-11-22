@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { localAssetStore } from './lib/stores/localAssetStore';
   import { folderStore } from './lib/stores/folderStore';
+  import { themeStore, themes } from './lib/stores/themeStore';
   import Navbar from './lib/components/Navbar.svelte';
   import SearchBar from './lib/components/SearchBar.svelte';
   import AssetGrid from './lib/components/AssetGrid.svelte';
@@ -10,6 +11,15 @@
 
   let showFolderManager = false;
   let selectedAsset = null;
+  let theme;
+
+  themeStore.subscribe(value => {
+    theme = themes[value];
+    // Update body data-theme attribute
+    if (typeof document !== 'undefined') {
+      document.body.setAttribute('data-theme', value);
+    }
+  });
 
   onMount(async () => {
     // Initialize local asset store
@@ -39,7 +49,7 @@
   }
 </script>
 
-<main class="min-h-screen">
+<main class="min-h-screen bg-gradient-to-br {theme?.colors.bgPrimary} {theme?.colors.textPrimary} transition-colors duration-500" style="font-family: '{theme?.font}', system-ui, sans-serif;">
   <!-- Main Application -->
   <Navbar on:manageFolders={handleManageFolders} />
 
@@ -50,7 +60,7 @@
         <h1 class="text-5xl md:text-6xl font-bold gradient-text animate-fade-in">
           Your 3D Assets
         </h1>
-        <p class="text-xl text-white/70 animate-fade-in" style="animation-delay: 0.1s;">
+        <p class="text-xl {theme?.colors.textSecondary} animate-fade-in" style="animation-delay: 0.1s;">
           Preview and organize your local 3D models
         </p>
       </div>
@@ -64,17 +74,17 @@
       <div class="flex justify-center gap-8 text-center animate-fade-in" style="animation-delay: 0.3s;">
         <div class="glass-card px-6 py-3 inline-block">
           <p class="text-3xl font-bold gradient-text">{$localAssetStore.assets.length}</p>
-          <p class="text-sm text-white/60">Total Assets</p>
+          <p class="text-sm {theme?.colors.textMuted}">Total Assets</p>
         </div>
         <div class="glass-card px-6 py-3 inline-block">
           <p class="text-3xl font-bold gradient-text">
             {localAssetStore.getFilteredAssets($localAssetStore).length}
           </p>
-          <p class="text-sm text-white/60">Filtered</p>
+          <p class="text-sm {theme?.colors.textMuted}">Filtered</p>
         </div>
         <div class="glass-card px-6 py-3 inline-block">
           <p class="text-3xl font-bold gradient-text">{$folderStore.folders.length}</p>
-          <p class="text-sm text-white/60">Watched Folders</p>
+          <p class="text-sm {theme?.colors.textMuted}">Watched Folders</p>
         </div>
       </div>
     </div>
