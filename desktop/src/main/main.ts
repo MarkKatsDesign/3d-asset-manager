@@ -163,9 +163,42 @@ ipcMain.handle('file:getPath', async (_event, id: number) => {
 ipcMain.handle('file:getThumbnail', async (_event, id: number) => {
   const thumbnail = dbService.getThumbnail(id);
   if (thumbnail) {
+    // Check if it's an SVG (starts with '<svg')
+    const content = thumbnail.toString('utf-8');
+    if (content.trim().startsWith('<svg')) {
+      return `data:image/svg+xml;base64,${thumbnail.toString('base64')}`;
+    }
+    // Otherwise treat as JPEG
     return `data:image/jpeg;base64,${thumbnail.toString('base64')}`;
   }
   return null;
+});
+
+// Read model file and return as ArrayBuffer
+ipcMain.handle('file:readModel', async (_event, id: number) => {
+  const asset = dbService.getAsset(id);
+  if (!asset) return null;
+
+  try {
+    const fs = await import('fs/promises');
+    const buffer = await fs.readFile(asset.filePath);
+    // Return as Uint8Array which can be transferred
+    return new Uint8Array(buffer);
+  } catch (error) {
+    console.error('Error reading model file:', error);
+    return null;
+  }
+});
+
+// Save thumbnail generated in renderer
+ipcMain.handle('file:saveThumbnail', async (_event, id: number, thumbnailData: string) => {
+  try {
+    thumbnailService.saveThumbnailFromRenderer(id, thumbnailData);
+    return true;
+  } catch (error) {
+    console.error('Error saving thumbnail:', error);
+    return false;
+  }
 });
 
 // App lifecycle

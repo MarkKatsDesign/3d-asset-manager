@@ -6,14 +6,34 @@
 
   const dispatch = createEventDispatcher();
   let thumbnailUrl = null;
+  let checkCount = 0;
 
   onMount(async () => {
     // Load thumbnail from local database
+    await loadThumbnail();
+
+    // Check for updated thumbnail a few times (in case it's being generated)
+    const interval = setInterval(async () => {
+      checkCount++;
+      const hadPlaceholder = thumbnailUrl && thumbnailUrl.includes('svg+xml');
+      await loadThumbnail();
+
+      // Stop checking after 5 attempts or when we get a real thumbnail
+      if (checkCount >= 5 || (thumbnailUrl && !thumbnailUrl.includes('svg+xml'))) {
+        clearInterval(interval);
+      }
+    }, 3000); // Check every 3 seconds
+
+    // Cleanup
+    return () => clearInterval(interval);
+  });
+
+  async function loadThumbnail() {
     const thumbnail = await localAssetStore.getThumbnail(asset.id);
     if (thumbnail) {
       thumbnailUrl = thumbnail;
     }
-  });
+  }
 
   function handleClick() {
     dispatch('view', asset);

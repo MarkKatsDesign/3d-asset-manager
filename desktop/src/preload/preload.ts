@@ -22,6 +22,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // File operations
   getFilePath: (id: number) => ipcRenderer.invoke('file:getPath', id),
   getThumbnail: (id: number) => ipcRenderer.invoke('file:getThumbnail', id),
+  readModelFile: (id: number) => ipcRenderer.invoke('file:readModel', id),
+  saveThumbnail: (id: number, thumbnailData: string) => ipcRenderer.invoke('file:saveThumbnail', id, thumbnailData),
 
   // Event listeners for real-time updates
   onAssetAdded: (callback: (asset: any) => void) => {
@@ -57,6 +59,8 @@ export interface ElectronAPI {
   rescanFolder: (id: number) => Promise<boolean>;
   getFilePath: (id: number) => Promise<string | null>;
   getThumbnail: (id: number) => Promise<string | null>;
+  readModelFile: (id: number) => Promise<Uint8Array | null>;
+  saveThumbnail: (id: number, thumbnailData: string) => Promise<boolean>;
   onAssetAdded: (callback: (asset: any) => void) => () => void;
   onAssetUpdated: (callback: (asset: any) => void) => () => void;
   onAssetRemoved: (callback: (id: number) => void) => () => void;

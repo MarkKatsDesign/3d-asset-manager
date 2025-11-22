@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import { generateThumbnail } from '../utils/thumbnailGenerator';
 
 function createLocalAssetStore() {
   const { subscribe, set, update } = writable({
@@ -13,7 +14,7 @@ function createLocalAssetStore() {
   let unsubscribeUpdated = null;
   let unsubscribeRemoved = null;
 
-  return {
+  const store = {
     subscribe,
 
     init: async () => {
@@ -42,7 +43,7 @@ function createLocalAssetStore() {
       }
 
       // Load initial assets
-      await this.loadAssets();
+      await store.loadAssets();
     },
 
     loadAssets: async () => {
@@ -50,9 +51,40 @@ function createLocalAssetStore() {
       try {
         const assets = await window.electronAPI.getAssets();
         update(state => ({ ...state, assets, loading: false }));
+
+        // Generate thumbnails for assets that don't have them
+        store.generateMissingThumbnails(assets);
       } catch (error) {
         console.error('Error loading assets:', error);
         update(state => ({ ...state, loading: false, error: error.message }));
+      }
+    },
+
+    generateMissingThumbnails: async (assets) => {
+      // Generate thumbnails in the background
+      for (const asset of assets) {
+        try {
+          // Check if thumbnail exists
+          const existingThumbnail = await window.electronAPI.getThumbnail(asset.id);
+
+          // Skip if thumbnail exists and is not an SVG placeholder
+          if (existingThumbnail && !existingThumbnail.includes('svg+xml')) {
+            continue;
+          }
+
+          console.log(`Generating thumbnail for asset ${asset.id}: ${asset.name}`);
+
+          // Generate thumbnail
+          const thumbnailData = await generateThumbnail(asset.id);
+
+          // Save to database
+          await window.electronAPI.saveThumbnail(asset.id, thumbnailData);
+
+          console.log(`✓ Thumbnail generated for ${asset.name}`);
+        } catch (error) {
+          console.error(`Error generating thumbnail for asset ${asset.id}:`, error);
+          // Continue with other assets even if one fails
+        }
       }
     },
 
@@ -95,7 +127,7 @@ function createLocalAssetStore() {
 
     searchAssets: async (query) => {
       if (!query) {
-        await this.loadAssets();
+        await store.loadAssets();
         return;
       }
 
@@ -183,6 +215,8 @@ function createLocalAssetStore() {
       if (unsubscribeRemoved) unsubscribeRemoved();
     }
   };
+
+  return store;
 }
 
 export const localAssetStore = createLocalAssetStore();

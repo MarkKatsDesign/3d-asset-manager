@@ -15,6 +15,7 @@
   let loading = true;
   let error = null;
   let gridHelper;
+  let currentBlobUrl = null;
 
   // Environment controls
   let useEnvironment = true;
@@ -309,22 +310,28 @@
 
   async function loadModel() {
     try {
-      // Get local file path from Electron
-      const filePath = await localAssetStore.getFilePath(asset.id);
-      if (!filePath) {
-        throw new Error('File path not found');
+      // Revoke previous blob URL if exists
+      if (currentBlobUrl) {
+        URL.revokeObjectURL(currentBlobUrl);
+        currentBlobUrl = null;
       }
 
-      console.log('Loading model from:', filePath);
+      // Read the model file as a buffer from the main process
+      const modelData = await window.electronAPI.readModelFile(asset.id);
+      if (!modelData) {
+        throw new Error('Failed to read model file');
+      }
+
+      console.log('Loading model, data size:', modelData.byteLength);
+
+      // Create a blob from the buffer
+      const blob = new Blob([modelData]);
+      currentBlobUrl = URL.createObjectURL(blob);
 
       const loader = new GLTFLoader();
 
-      // Convert Windows path to file:// URL
-      const fileUrl = `file:///${filePath.replace(/\\/g, '/')}`;
-      console.log('File URL:', fileUrl);
-
       loader.load(
-        fileUrl,
+        currentBlobUrl,
         (gltf) => {
           const model = gltf.scene;
 
@@ -411,6 +418,12 @@
   function cleanup() {
     if (animationId) {
       cancelAnimationFrame(animationId);
+    }
+
+    // Revoke blob URL to free memory
+    if (currentBlobUrl) {
+      URL.revokeObjectURL(currentBlobUrl);
+      currentBlobUrl = null;
     }
 
     if (renderer) {
