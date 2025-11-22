@@ -50,6 +50,39 @@
     box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.15), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
   }
 
+  /* Glass card text for light theme */
+  body[data-theme="macosLight"] .glass-card h3,
+  body[data-theme="macosLight"] .glass-card label,
+  body[data-theme="macosLight"] .glass-card p,
+  body[data-theme="macosLight"] .glass-card span {
+    color: rgb(17, 24, 39) !important; /* gray-900 */
+  }
+
+  body[data-theme="macosLight"] .glass-card .text-sm,
+  body[data-theme="macosLight"] .glass-card .text-xs {
+    color: rgb(75, 85, 99) !important; /* gray-600 */
+  }
+
+  /* Borders for light theme */
+  body[data-theme="macosLight"] .border-white\/10 {
+    border-color: rgb(229, 231, 235) !important; /* gray-200 */
+  }
+
+  /* Font medium in light theme */
+  body[data-theme="macosLight"] .font-medium {
+    color: rgb(17, 24, 39) !important; /* gray-900 */
+  }
+
+  /* Modal header and footer backgrounds for light theme */
+  body[data-theme="macosLight"] .glass-modal {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-color: rgb(229, 231, 235) !important;
+  }
+
+  body[data-theme="macosLight"] .glass-modal > div {
+    background: transparent !important;
+  }
+
   body[data-theme="macosLight"] .glass-button {
     background: rgba(243, 244, 246, 0.8) !important; /* gray-100 */
     border-color: rgb(229, 231, 235) !important; /* gray-200 */
@@ -89,6 +122,35 @@
   body[data-theme="macosLight"] .text-white\/50:hover,
   body[data-theme="macosLight"] .hover\:text-white:hover {
     color: rgb(17, 24, 39) !important; /* gray-900 */
+  }
+
+  /* Theme menu background for light theme */
+  body[data-theme="macosLight"] .theme-menu-glass {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-color: rgb(209, 213, 219) !important; /* gray-300 */
+    box-shadow: 0 8px 32px 0 rgb(0 0 0 / 0.15), 0 0 0 1px rgb(0 0 0 / 0.05) inset !important;
+    color: rgb(17, 24, 39) !important; /* gray-900 */
+  }
+
+  /* Theme menu text and elements for light theme */
+  body[data-theme="macosLight"] .theme-menu-glass .opacity-60 {
+    opacity: 0.6 !important;
+    color: rgb(75, 85, 99) !important; /* gray-600 */
+  }
+
+  body[data-theme="macosLight"] .theme-menu-glass .font-medium {
+    color: rgb(17, 24, 39) !important; /* gray-900 */
+  }
+
+  body[data-theme="macosLight"] .theme-menu-glass .text-xs {
+    color: rgb(107, 114, 128) !important; /* gray-500 */
+  }
+
+  /* File format badge for light theme */
+  body[data-theme="macosLight"] .bg-black\/50 {
+    background: rgba(255, 255, 255, 0.85) !important;
+    color: rgb(17, 24, 39) !important; /* gray-900 */
+    border: 1px solid rgba(0, 0, 0, 0.1);
   }
 
   /* macOS Dark theme text colors */

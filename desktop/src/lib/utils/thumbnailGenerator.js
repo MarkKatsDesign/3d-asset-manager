@@ -84,14 +84,14 @@ export async function generateThumbnail(assetId, width = 400, height = 400) {
       preserveDrawingBuffer: true
     });
     renderer.setSize(width, height);
-    renderer.setClearColor(0x1a1a2e, 1);
+    renderer.setClearColor(0x000000, 0); // Transparent background
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.8; // Increase exposure for brighter thumbnails
 
     // Create scene
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a1a2e);
+    scene.background = null; // No background for transparency
 
     // Create camera
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
@@ -168,8 +168,8 @@ export async function generateThumbnail(assetId, width = 400, height = 400) {
           // Render the scene
           renderer.render(scene, camera);
 
-          // Get the image data
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+          // Get the image data as PNG to preserve transparency
+          const dataUrl = canvas.toDataURL('image/png');
 
           // Cleanup
           URL.revokeObjectURL(blobUrl);

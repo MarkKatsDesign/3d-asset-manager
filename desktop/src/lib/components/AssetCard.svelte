@@ -73,7 +73,7 @@
   tabindex="0"
 >
   <!-- Thumbnail -->
-  <div class="relative aspect-video bg-gradient-to-br from-indigo-900/50 to-purple-900/50 overflow-hidden">
+  <div class="relative aspect-video overflow-hidden">
     {#if thumbnailUrl}
       <img
         src={thumbnailUrl}

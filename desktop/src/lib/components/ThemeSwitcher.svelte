@@ -39,7 +39,7 @@
   </button>
 
   {#if showMenu}
-    <div class="absolute right-0 mt-2 w-56 glass-card p-2 rounded-2xl z-50 animate-slide-down">
+    <div class="absolute right-0 mt-2 w-56 theme-menu-glass p-2 rounded-2xl z-50 animate-slide-down">
       <div class="text-xs font-semibold opacity-60 px-3 py-2">THEMES</div>
 
       {#each Object.values(themes) as theme}
@@ -68,6 +68,17 @@
 </div>
 
 <style>
+  /* Enhanced frosted glass effect for theme menu */
+  .theme-menu-glass {
+    background: rgba(20, 20, 30, 0.85);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow:
+      0 8px 32px 0 rgba(0, 0, 0, 0.5),
+      0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  }
+
   @keyframes slide-down {
     from {
       opacity: 0;

@@ -25,6 +25,40 @@
   let isLoadingHDRI = false;
   let hdriError = null;
   let showGrid = true;
+  let transparentBackground = false;
+  let backgroundColor = '#2a2a3e'; // Default studio blue
+  let isLightBackground = false; // Tracks if current background is light
+
+  // Preset background colors
+  const colorPresets = [
+    { name: 'White', color: '#ffffff' },
+    { name: 'Light Gray', color: '#cccccc' },
+    { name: 'Gray', color: '#666666' },
+    { name: 'Dark', color: '#1a1a1a' },
+    { name: 'Studio', color: '#2a2a3e' },
+  ];
+
+  /**
+   * Calculate relative luminance of a color (WCAG formula)
+   * Returns value between 0 (black) and 1 (white)
+   */
+  function getColorLuminance(hexColor) {
+    // Remove # if present
+    const hex = hexColor.replace('#', '');
+
+    // Convert to RGB
+    const r = parseInt(hex.substr(0, 2), 16) / 255;
+    const g = parseInt(hex.substr(2, 2), 16) / 255;
+    const b = parseInt(hex.substr(4, 2), 16) / 255;
+
+    // Apply gamma correction
+    const [rs, gs, bs] = [r, g, b].map(c =>
+      c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+    );
+
+    // Calculate luminance
+    return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+  }
 
   onMount(() => {
     initScene();
@@ -42,7 +76,7 @@
   function initScene() {
     // Scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x2a2a3e); // Lighter background for better visibility
+    updateSceneBackground();
     // Reduce fog or remove it to ensure model visibility
     scene.fog = new THREE.Fog(0x2a2a3e, 20, 100);
 
@@ -135,6 +169,25 @@
 
     // Start animation loop
     animate();
+  }
+
+  function updateSceneBackground() {
+    if (transparentBackground) {
+      scene.background = null;
+      scene.fog = null;
+    } else {
+      const bgColor = new THREE.Color(backgroundColor);
+      scene.background = bgColor;
+      scene.fog = new THREE.Fog(backgroundColor, 20, 100);
+    }
+  }
+
+  function setBackgroundColor(color) {
+    backgroundColor = color;
+    // Determine if background is light (luminance > 0.5)
+    const luminance = getColorLuminance(color);
+    isLightBackground = luminance > 0.5;
+    updateSceneBackground();
   }
 
   function setupEnvironment() {
@@ -306,6 +359,19 @@
   // Toggle grid visibility
   $: if (gridHelper) {
     gridHelper.visible = showGrid;
+  }
+
+  // Toggle transparent background and update light detection
+  $: if (scene) {
+    updateSceneBackground();
+    transparentBackground; // Reactive dependency
+    backgroundColor; // Reactive dependency
+  }
+
+  // Update isLightBackground when backgroundColor changes (for color picker)
+  $: if (backgroundColor && !transparentBackground) {
+    const luminance = getColorLuminance(backgroundColor);
+    isLightBackground = luminance > 0.5;
   }
 
   async function loadModel() {
@@ -538,7 +604,7 @@
 
       <!-- Controls Info -->
       {#if !loading && !error}
-        <div class="absolute bottom-4 left-4 glass-card px-4 py-2 text-sm text-white/70">
+        <div class="absolute bottom-4 left-4 px-4 py-2 text-sm transition-all duration-300 {isLightBackground && !transparentBackground ? 'glass-card-light' : 'glass-card text-white/70'}">
           <p>Left click + drag to rotate</p>
           <p>Right click + drag to pan</p>
           <p>Scroll to zoom</p>
@@ -548,7 +614,7 @@
         <div class="absolute bottom-4 right-4">
           <button
             on:click={() => showControls = !showControls}
-            class="glass-button p-3 mb-2"
+            class="p-3 mb-2 transition-all duration-300 {isLightBackground && !transparentBackground ? 'glass-button-light' : 'glass-button'}"
             title="Environment settings"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -557,16 +623,16 @@
           </button>
 
           {#if showControls}
-            <div class="glass-card p-4 space-y-4 w-64 animate-slide-up">
+            <div class="p-4 space-y-4 w-64 animate-slide-up transition-all duration-300 {isLightBackground && !transparentBackground ? 'glass-card-light' : 'glass-card'}">
               <h3 class="font-semibold text-sm gradient-text">Environment</h3>
 
               <!-- Environment Toggle -->
               <div class="flex items-center justify-between">
-                <label for="env-toggle" class="text-sm text-white/80">Use Environment Map</label>
+                <label for="env-toggle" class="text-sm {isLightBackground && !transparentBackground ? 'text-white' : 'text-white/80'}">Use Environment Map</label>
                 <button
                   id="env-toggle"
                   on:click={() => useEnvironment = !useEnvironment}
-                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {useEnvironment ? 'bg-indigo-500' : 'bg-white/20'}"
+                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {useEnvironment ? 'bg-indigo-500' : isLightBackground && !transparentBackground ? 'bg-white/30' : 'bg-white/20'}"
                 >
                   <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {useEnvironment ? 'translate-x-6' : 'translate-x-1'}"></span>
                 </button>
@@ -574,22 +640,71 @@
 
               <!-- Grid Toggle -->
               <div class="flex items-center justify-between">
-                <label for="grid-toggle" class="text-sm text-white/80">Show Grid</label>
+                <label for="grid-toggle" class="text-sm {isLightBackground && !transparentBackground ? 'text-white' : 'text-white/80'}">Show Grid</label>
                 <button
                   id="grid-toggle"
                   on:click={() => showGrid = !showGrid}
-                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {showGrid ? 'bg-indigo-500' : 'bg-white/20'}"
+                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {showGrid ? 'bg-indigo-500' : isLightBackground && !transparentBackground ? 'bg-white/30' : 'bg-white/20'}"
                 >
                   <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {showGrid ? 'translate-x-6' : 'translate-x-1'}"></span>
                 </button>
               </div>
 
+              <!-- Transparent Background Toggle -->
+              <div class="flex items-center justify-between">
+                <label for="transparent-toggle" class="text-sm {isLightBackground && !transparentBackground ? 'text-white' : 'text-white/80'}">Transparent Background</label>
+                <button
+                  id="transparent-toggle"
+                  on:click={() => transparentBackground = !transparentBackground}
+                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {transparentBackground ? 'bg-indigo-500' : isLightBackground && !transparentBackground ? 'bg-white/30' : 'bg-white/20'}"
+                >
+                  <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {transparentBackground ? 'translate-x-6' : 'translate-x-1'}"></span>
+                </button>
+              </div>
+
+              <!-- Background Color Selector (only when not transparent) -->
+              {#if !transparentBackground}
+                <div class="space-y-2 pt-2 border-t {isLightBackground ? 'border-white/20' : 'border-white/10'}">
+                  <label class="text-sm font-medium {isLightBackground ? 'text-white' : 'text-white/80'}">Background Color</label>
+                  <div class="flex flex-wrap gap-2">
+                    {#each colorPresets as preset}
+                      <button
+                        on:click={() => setBackgroundColor(preset.color)}
+                        class="group relative w-10 h-10 rounded-lg border-2 transition-all hover:scale-110 {backgroundColor === preset.color ? 'border-indigo-400 scale-105' : 'border-white/20 hover:border-white/40'}"
+                        style="background-color: {preset.color}"
+                        title={preset.name}
+                      >
+                        {#if backgroundColor === preset.color}
+                          <svg class="w-5 h-5 absolute inset-0 m-auto text-white drop-shadow-lg" style="filter: {preset.color === '#ffffff' || preset.color === '#cccccc' ? 'invert(1)' : 'none'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                          </svg>
+                        {/if}
+                      </button>
+                    {/each}
+
+                    <!-- Custom Color Picker -->
+                    <label class="relative w-10 h-10 rounded-lg border-2 border-white/20 hover:border-white/40 cursor-pointer transition-all hover:scale-110 flex items-center justify-center" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)">
+                      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                      </svg>
+                      <input
+                        type="color"
+                        bind:value={backgroundColor}
+                        on:change={() => updateSceneBackground()}
+                        class="absolute inset-0 opacity-0 cursor-pointer"
+                        title="Custom color"
+                      />
+                    </label>
+                  </div>
+                </div>
+              {/if}
+
               <!-- Intensity Slider -->
               {#if useEnvironment}
                 <div class="space-y-2">
                   <div class="flex items-center justify-between">
-                    <label for="intensity" class="text-sm text-white/80">Intensity</label>
-                    <span class="text-xs text-white/60">{environmentIntensity.toFixed(1)}</span>
+                    <label for="intensity" class="text-sm {isLightBackground && !transparentBackground ? 'text-white' : 'text-white/80'}">Intensity</label>
+                    <span class="text-xs {isLightBackground && !transparentBackground ? 'text-white/70' : 'text-white/60'}">{environmentIntensity.toFixed(1)}</span>
                   </div>
                   <input
                     id="intensity"
@@ -598,13 +713,13 @@
                     max="2"
                     step="0.1"
                     bind:value={environmentIntensity}
-                    class="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+                    class="w-full h-2 rounded-lg appearance-none cursor-pointer slider {isLightBackground && !transparentBackground ? 'bg-white/30' : 'bg-white/20'}"
                   />
                 </div>
 
                 <!-- Custom HDRI Upload -->
-                <div class="space-y-3 pt-2 border-t border-white/10">
-                  <label for="hdri-file" class="text-sm text-white/80 font-medium">Custom HDRI</label>
+                <div class="space-y-3 pt-2 border-t {isLightBackground && !transparentBackground ? 'border-white/20' : 'border-white/10'}">
+                  <label for="hdri-file" class="text-sm font-medium {isLightBackground && !transparentBackground ? 'text-white' : 'text-white/80'}">Custom HDRI</label>
 
                   {#if customHDRI}
                     <!-- Show when custom HDRI is loaded -->
@@ -634,7 +749,7 @@
                     />
                     <label
                       for="hdri-file"
-                      class="glass-button w-full py-2 px-4 text-center cursor-pointer flex items-center justify-center space-x-2 {isLoadingHDRI ? 'opacity-50 cursor-not-allowed' : ''}"
+                      class="w-full py-2 px-4 text-center cursor-pointer flex items-center justify-center space-x-2 {isLoadingHDRI ? 'opacity-50 cursor-not-allowed' : ''} {isLightBackground && !transparentBackground ? 'glass-button-light' : 'glass-button'}"
                     >
                       {#if isLoadingHDRI}
                         <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -649,7 +764,7 @@
                         <span class="text-sm">Upload HDRI</span>
                       {/if}
                     </label>
-                    <p class="text-xs text-white/40">Supports: .hdr, .jpg, .png (max 15MB)</p>
+                    <p class="text-xs {isLightBackground && !transparentBackground ? 'text-white/60' : 'text-white/40'}">Supports: .hdr, .jpg, .png (max 15MB)</p>
                   {/if}
 
                   <!-- Error message -->
@@ -661,8 +776,8 @@
                 </div>
               {/if}
 
-              <div class="pt-2 border-t border-white/10">
-                <p class="text-xs text-white/50">Environment map provides realistic lighting and reflections</p>
+              <div class="pt-2 border-t {isLightBackground && !transparentBackground ? 'border-white/20' : 'border-white/10'}">
+                <p class="text-xs {isLightBackground && !transparentBackground ? 'text-white/60' : 'text-white/50'}">Environment map provides realistic lighting and reflections</p>
               </div>
             </div>
           {/if}
@@ -675,12 +790,16 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
           <div class="flex items-center space-x-2">
-            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-sm font-bold">
-              {asset.expand?.user?.name?.charAt(0).toUpperCase() || 'U'}
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
             </div>
             <div>
-              <p class="text-sm font-medium">{asset.expand?.user?.name || 'Unknown'}</p>
-              <p class="text-xs text-white/50">{new Date(asset.created).toLocaleDateString()}</p>
+              <p class="text-sm font-medium">Local File</p>
+              <p class="text-xs text-white/50">
+                {(asset.fileSize / 1024 / 1024).toFixed(2)} MB • Added {new Date(asset.createdAt).toLocaleDateString()}
+              </p>
             </div>
           </div>
         </div>
@@ -737,5 +856,36 @@
     background: rgba(255, 255, 255, 0.2);
     border-radius: 4px;
     height: 8px;
+  }
+
+  /* Light background variants - for when viewer background is light */
+  .glass-card-light {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 1rem;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
+    color: rgb(243, 244, 246); /* gray-100 */
+  }
+
+  .glass-button-light {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    transition: all 0.3s ease;
+    color: rgb(243, 244, 246); /* gray-100 */
+  }
+
+  .glass-button-light:hover {
+    background: rgba(0, 0, 0, 0.65);
+    border-color: rgba(0, 0, 0, 0.3);
+  }
+
+  .glass-button-light:active {
+    transform: scale(0.95);
   }
 </style>
