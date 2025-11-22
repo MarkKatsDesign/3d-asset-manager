@@ -633,7 +633,7 @@
                       disabled={isLoadingHDRI}
                     />
                     <label
-                      for="hdri-upload"
+                      for="hdri-file"
                       class="glass-button w-full py-2 px-4 text-center cursor-pointer flex items-center justify-center space-x-2 {isLoadingHDRI ? 'opacity-50 cursor-not-allowed' : ''}"
                     >
                       {#if isLoadingHDRI}

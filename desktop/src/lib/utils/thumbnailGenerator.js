@@ -2,6 +2,58 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 /**
+ * Create a bright studio-style environment map
+ * @returns {THREE.DataTexture} Environment texture
+ */
+function createStudioEnvironment() {
+  const width = 512;
+  const height = 256;
+  const size = width * height;
+  const data = new Uint8Array(4 * size);
+
+  // Create a bright, multi-directional studio lighting environment
+  for (let i = 0; i < size; i++) {
+    const stride = i * 4;
+    const x = (i % width) / width;
+    const y = Math.floor(i / width) / height;
+
+    // Convert to spherical coordinates
+    const theta = x * Math.PI * 2; // 0 to 2π
+    const phi = y * Math.PI; // 0 to π
+
+    // Create a bright gradient with multiple light sources
+    // Top hemisphere: very bright (studio ceiling lights)
+    const topBrightness = Math.max(0, 1 - phi / (Math.PI * 0.6));
+
+    // Key light (from front-right-top)
+    const keyAngle = Math.cos(theta - Math.PI * 0.25) * Math.sin(phi - Math.PI * 0.3);
+    const keyLight = Math.max(0, keyAngle) * 0.8;
+
+    // Fill lights (from sides)
+    const fillLight1 = Math.max(0, Math.cos(theta + Math.PI * 0.5) * Math.sin(phi)) * 0.4;
+    const fillLight2 = Math.max(0, Math.cos(theta - Math.PI * 0.5) * Math.sin(phi)) * 0.4;
+
+    // Combine all light sources
+    let brightness = (topBrightness * 0.9 + keyLight + fillLight1 + fillLight2);
+    brightness = Math.min(1, brightness + 0.3); // Add ambient + clamp
+
+    // Very bright, neutral color (slight warm tint)
+    const r = Math.floor(brightness * 255);
+    const g = Math.floor(brightness * 252);
+    const b = Math.floor(brightness * 248);
+
+    data[stride] = r;
+    data[stride + 1] = g;
+    data[stride + 2] = b;
+    data[stride + 3] = 255;
+  }
+
+  const texture = new THREE.DataTexture(data, width, height);
+  texture.needsUpdate = true;
+  return texture;
+}
+
+/**
  * Generate a thumbnail for a 3D model
  * @param {number} assetId - The asset ID
  * @param {number} width - Thumbnail width
@@ -33,6 +85,9 @@ export async function generateThumbnail(assetId, width = 400, height = 400) {
     });
     renderer.setSize(width, height);
     renderer.setClearColor(0x1a1a2e, 1);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.8; // Increase exposure for brighter thumbnails
 
     // Create scene
     const scene = new THREE.Scene();
@@ -41,29 +96,30 @@ export async function generateThumbnail(assetId, width = 400, height = 400) {
     // Create camera
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
 
-    // Add enhanced lighting for better visibility
-    // Hemisphere light for natural ambient lighting (sky + ground)
-    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-    scene.add(hemisphereLight);
+    // PMREM Generator for environment map
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    pmremGenerator.compileEquirectangularShader();
 
-    // Ambient light for overall base illumination
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-    scene.add(ambientLight);
+    // Create a bright studio-like HDRI environment
+    const envMapTexture = createStudioEnvironment();
+    envMapTexture.mapping = THREE.EquirectangularReflectionMapping;
 
-    // Key light (main light from front-top-right)
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    // Generate PMREM environment map
+    const envMap = pmremGenerator.fromEquirectangular(envMapTexture).texture;
+    scene.environment = envMap;
+
+    // Dispose the temporary texture
+    envMapTexture.dispose();
+
+    // Add supplementary lights for extra brightness and definition
+    // Reduced intensity since environment map provides base lighting
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.8);
     keyLight.position.set(5, 8, 5);
     scene.add(keyLight);
 
-    // Fill light (softer light from front-left to fill shadows)
-    const fillLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
     fillLight.position.set(-5, 3, 5);
     scene.add(fillLight);
-
-    // Back light (rim light from behind to separate model from background)
-    const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
-    backLight.position.set(0, 3, -5);
-    scene.add(backLight);
 
     // Load the model
     const loader = new GLTFLoader();
@@ -117,6 +173,7 @@ export async function generateThumbnail(assetId, width = 400, height = 400) {
 
           // Cleanup
           URL.revokeObjectURL(blobUrl);
+          pmremGenerator.dispose();
           renderer.dispose();
           scene.traverse((object) => {
             if (object.geometry) object.geometry.dispose();
@@ -135,6 +192,7 @@ export async function generateThumbnail(assetId, width = 400, height = 400) {
         (error) => {
           console.error('Error loading model for thumbnail:', error);
           URL.revokeObjectURL(blobUrl);
+          pmremGenerator.dispose();
           renderer.dispose();
           reject(error);
         }
