@@ -1,12 +1,11 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
 import { DatabaseService } from './services/database.js';
 import { FileWatcherService } from './services/fileWatcher.js';
 import { ThumbnailService } from './services/thumbnail.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// In CommonJS, __dirname is already available
+declare const __dirname: string;
 
 let mainWindow: BrowserWindow | null = null;
 let dbService: DatabaseService;
@@ -22,7 +21,7 @@ function createWindow() {
     minWidth: 1000,
     minHeight: 600,
     webPreferences: {
-      preload: path.join(__dirname, '../preload/preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false

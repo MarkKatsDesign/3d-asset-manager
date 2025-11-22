@@ -14,22 +14,34 @@ async function buildElectron() {
   console.log('Building Electron main process...');
 
   try {
+    // Build main process
     await build({
-      entryPoints: [
-        path.join(rootDir, 'src/main/main.ts'),
-        path.join(rootDir, 'src/preload/preload.ts')
-      ],
+      entryPoints: [path.join(rootDir, 'src/main/main.ts')],
       bundle: true,
       platform: 'node',
       target: 'node18',
-      outdir: path.join(rootDir, 'dist-electron'),
+      outfile: path.join(rootDir, 'dist-electron/main.cjs'),
       external: ['electron', 'better-sqlite3'],
-      format: 'esm',
+      format: 'cjs',
       sourcemap: true,
       define: {
         'process.env.NODE_ENV': '"development"'
-      },
-      outExtension: { '.js': '.js' }
+      }
+    });
+
+    // Build preload script
+    await build({
+      entryPoints: [path.join(rootDir, 'src/preload/preload.ts')],
+      bundle: true,
+      platform: 'node',
+      target: 'node18',
+      outfile: path.join(rootDir, 'dist-electron/preload.cjs'),
+      external: ['electron'],
+      format: 'cjs',
+      sourcemap: true,
+      define: {
+        'process.env.NODE_ENV': '"development"'
+      }
     });
 
     console.log('✓ Electron build complete');
@@ -47,7 +59,7 @@ function startElectron() {
 
   console.log('Starting Electron...');
 
-  electronProcess = spawn(electron, [path.join(rootDir, 'dist-electron/main.js')], {
+  electronProcess = spawn(electron, [path.join(rootDir, 'dist-electron/main.cjs')], {
     stdio: 'inherit',
     env: {
       ...process.env,
