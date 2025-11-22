@@ -28,6 +28,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Thumbnail operations
   clearAllThumbnails: () => ipcRenderer.invoke('thumbnails:clearAll'),
 
+  // Screenshot operations
+  saveScreenshot: (imageData: string, defaultFilename: string) => ipcRenderer.invoke('screenshot:save', imageData, defaultFilename),
+
   // Event listeners for real-time updates
   onAssetAdded: (callback: (asset: any) => void) => {
     const listener = (_event: any, asset: any) => callback(asset);
@@ -65,6 +68,7 @@ export interface ElectronAPI {
   readModelFile: (id: number) => Promise<Uint8Array | null>;
   saveThumbnail: (id: number, thumbnailData: string) => Promise<boolean>;
   clearAllThumbnails: () => Promise<number>;
+  saveScreenshot: (imageData: string, defaultFilename: string) => Promise<{ success: boolean; path: string | null; error?: string }>;
   onAssetAdded: (callback: (asset: any) => void) => () => void;
   onAssetUpdated: (callback: (asset: any) => void) => () => void;
   onAssetRemoved: (callback: (id: number) => void) => () => void;

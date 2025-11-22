@@ -213,6 +213,33 @@ ipcMain.handle('thumbnails:clearAll', async () => {
   }
 });
 
+// Save screenshot with dialog
+ipcMain.handle('screenshot:save', async (_event, imageData: string, defaultFilename: string) => {
+  try {
+    const result = await dialog.showSaveDialog(mainWindow!, {
+      title: 'Save Screenshot',
+      defaultPath: defaultFilename,
+      filters: [
+        { name: 'PNG Image', extensions: ['png'] },
+        { name: 'JPEG Image', extensions: ['jpg', 'jpeg'] }
+      ]
+    });
+
+    if (!result.canceled && result.filePath) {
+      const fs = await import('fs/promises');
+      // Remove data URL prefix (e.g., "data:image/png;base64,")
+      const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+      await fs.writeFile(result.filePath, buffer);
+      return { success: true, path: result.filePath };
+    }
+    return { success: false, path: null };
+  } catch (error) {
+    console.error('Error saving screenshot:', error);
+    return { success: false, path: null, error: error.message };
+  }
+});
+
 // App lifecycle
 app.whenReady().then(async () => {
   await initializeServices();

@@ -29,6 +29,11 @@
   let backgroundColor = '#2a2a3e'; // Default studio blue
   let isLightBackground = false; // Tracks if current background is light
 
+  // Screenshot settings
+  let screenshotQuality = '1080p';
+  let takingScreenshot = false;
+  let showQualityMenu = false;
+
   // Preset background colors
   const colorPresets = [
     { name: 'White', color: '#ffffff' },
@@ -36,6 +41,13 @@
     { name: 'Gray', color: '#666666' },
     { name: 'Dark', color: '#1a1a1a' },
     { name: 'Studio', color: '#2a2a3e' },
+  ];
+
+  // Screenshot quality presets
+  const qualityPresets = [
+    { id: '1080p', name: 'HD (1920×1080)', width: 1920, height: 1080 },
+    { id: '2k', name: '2K (2560×1440)', width: 2560, height: 1440 },
+    { id: '4k', name: '4K (3840×2160)', width: 3840, height: 2160 }
   ];
 
   /**
@@ -188,6 +200,84 @@
     const luminance = getColorLuminance(color);
     isLightBackground = luminance > 0.5;
     updateSceneBackground();
+  }
+
+  async function takeScreenshot() {
+    if (!scene || !camera || takingScreenshot) return;
+
+    takingScreenshot = true;
+    showQualityMenu = false;
+
+    try {
+      // Get selected quality preset
+      const preset = qualityPresets.find(p => p.id === screenshotQuality);
+      if (!preset) return;
+
+      // Create off-screen renderer at high quality
+      const screenshotCanvas = document.createElement('canvas');
+      screenshotCanvas.width = preset.width;
+      screenshotCanvas.height = preset.height;
+
+      const screenshotRenderer = new THREE.WebGLRenderer({
+        canvas: screenshotCanvas,
+        antialias: true,
+        alpha: transparentBackground,
+        preserveDrawingBuffer: true
+      });
+
+      screenshotRenderer.setSize(preset.width, preset.height);
+      screenshotRenderer.setPixelRatio(1); // Use 1:1 for exact resolution
+      screenshotRenderer.shadowMap.enabled = renderer.shadowMap.enabled;
+      screenshotRenderer.shadowMap.type = renderer.shadowMap.type;
+      screenshotRenderer.outputColorSpace = renderer.outputColorSpace;
+      screenshotRenderer.physicallyCorrectLights = renderer.physicallyCorrectLights;
+      screenshotRenderer.toneMapping = renderer.toneMapping;
+
+      // Copy the exact tone mapping exposure from current renderer
+      // This respects the environment intensity settings
+      screenshotRenderer.toneMappingExposure = renderer.toneMappingExposure;
+
+      // Set background to match current scene
+      if (transparentBackground) {
+        screenshotRenderer.setClearColor(0x000000, 0);
+      } else {
+        const bgColor = new THREE.Color(backgroundColor);
+        screenshotRenderer.setClearColor(bgColor, 1);
+      }
+
+      // Clone camera to preserve aspect ratio
+      const screenshotCamera = camera.clone();
+      screenshotCamera.aspect = preset.width / preset.height;
+      screenshotCamera.updateProjectionMatrix();
+
+      // Render the scene (which already has all lights, environment, and models)
+      screenshotRenderer.render(scene, screenshotCamera);
+
+      // Get image data
+      const imageData = screenshotCanvas.toDataURL('image/png');
+
+      // Generate filename
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T');
+      const dateStr = timestamp[0];
+      const timeStr = timestamp[1].split('.')[0];
+      const filename = `${asset.name}_${dateStr}_${timeStr}.png`;
+
+      // Save screenshot using Electron dialog
+      const result = await window.electronAPI.saveScreenshot(imageData, filename);
+
+      if (result.success) {
+        console.log('Screenshot saved to:', result.path);
+      } else if (result.error) {
+        console.error('Screenshot error:', result.error);
+      }
+
+      // Cleanup
+      screenshotRenderer.dispose();
+    } catch (error) {
+      console.error('Error taking screenshot:', error);
+    } finally {
+      takingScreenshot = false;
+    }
   }
 
   function setupEnvironment() {
@@ -556,6 +646,52 @@
         {/if}
       </div>
       <div class="flex items-center space-x-2">
+        <!-- Screenshot Button with Quality Menu -->
+        <div class="relative">
+          <button
+            on:click={() => showQualityMenu = !showQualityMenu}
+            disabled={takingScreenshot}
+            class="glass-button p-3 {takingScreenshot ? 'opacity-50 cursor-not-allowed' : ''}"
+            title="Take Screenshot"
+          >
+            {#if takingScreenshot}
+              <svg class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            {:else}
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            {/if}
+          </button>
+
+          <!-- Quality Menu Dropdown -->
+          {#if showQualityMenu && !takingScreenshot}
+            <div class="absolute right-0 mt-2 w-56 glass-card p-2 z-50 animate-slide-down">
+              <div class="text-xs font-semibold opacity-60 px-3 py-2">QUALITY</div>
+              {#each qualityPresets as preset}
+                <button
+                  on:click={() => { screenshotQuality = preset.id; takeScreenshot(); }}
+                  class="w-full px-3 py-2.5 rounded-xl text-left transition-all duration-200 flex items-center justify-between gap-3
+                    {screenshotQuality === preset.id ? 'bg-white/10' : 'hover:bg-white/5'}"
+                >
+                  <div>
+                    <div class="font-medium text-sm">{preset.name}</div>
+                    <div class="text-xs opacity-60">{preset.width} × {preset.height}</div>
+                  </div>
+                  {#if screenshotQuality === preset.id}
+                    <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                  {/if}
+                </button>
+              {/each}
+            </div>
+          {/if}
+        </div>
+
         <button
           on:click={handleDownload}
           class="glass-button p-3"
