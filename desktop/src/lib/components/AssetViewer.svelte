@@ -22,6 +22,7 @@
   let environmentIntensity = 1.0;
   let showControls = false;
   let customHDRI = null;
+  let originalHDRITexture = null; // Store original texture for screenshot regeneration
   let isLoadingHDRI = false;
   let hdriError = null;
   let showGrid = true;
@@ -33,6 +34,13 @@
   let screenshotQuality = '1080p';
   let takingScreenshot = false;
   let showQualityMenu = false;
+
+  // Notes section
+  let notesExpanded = false;
+  let description = asset.description || '';
+  let saveTimeout;
+  let savingNotes = false;
+  let notesSaved = false;
 
   // Preset background colors
   const colorPresets = [
@@ -209,9 +217,20 @@
     showQualityMenu = false;
 
     try {
+      console.log('=== SCREENSHOT DEBUG INFO ===');
+      console.log('Scene has environment:', !!scene.environment);
+      console.log('Use environment enabled:', useEnvironment);
+      console.log('Environment intensity:', environmentIntensity);
+      console.log('Custom HDRI loaded:', !!customHDRI);
+      console.log('Main renderer tone mapping exposure:', renderer.toneMappingExposure);
+      console.log('Transparent background:', transparentBackground);
+      console.log('Background color:', backgroundColor);
+
       // Get selected quality preset
       const preset = qualityPresets.find(p => p.id === screenshotQuality);
       if (!preset) return;
+
+      console.log('Screenshot quality:', preset.name);
 
       // Create off-screen renderer at high quality
       const screenshotCanvas = document.createElement('canvas');
@@ -237,6 +256,9 @@
       // This respects the environment intensity settings
       screenshotRenderer.toneMappingExposure = renderer.toneMappingExposure;
 
+      console.log('Screenshot renderer tone mapping exposure:', screenshotRenderer.toneMappingExposure);
+      console.log('Screenshot renderer tone mapping type:', screenshotRenderer.toneMapping);
+
       // Set background to match current scene
       if (transparentBackground) {
         screenshotRenderer.setClearColor(0x000000, 0);
@@ -245,13 +267,48 @@
         screenshotRenderer.setClearColor(bgColor, 1);
       }
 
+      // Store original environment to restore after screenshot
+      const originalEnvironment = scene.environment;
+
+      // CRITICAL: Create a new PMREM generator for the screenshot renderer
+      // The environment map must be regenerated for this renderer's WebGL context
+      if (useEnvironment && originalHDRITexture) {
+        console.log('Regenerating custom HDRI environment map for screenshot renderer...');
+        const screenshotPMREM = new THREE.PMREMGenerator(screenshotRenderer);
+        screenshotPMREM.compileEquirectangularShader();
+
+        // Regenerate the environment from the original texture for this renderer
+        const screenshotEnvMap = screenshotPMREM.fromEquirectangular(originalHDRITexture).texture;
+        scene.environment = screenshotEnvMap;
+
+        screenshotPMREM.dispose();
+        console.log('Custom HDRI environment map regenerated for screenshot');
+      } else if (useEnvironment && !originalHDRITexture) {
+        console.log('Using default environment (no custom HDRI to regenerate)');
+        // The default environment should already work since it's procedural
+      }
+
       // Clone camera to preserve aspect ratio
       const screenshotCamera = camera.clone();
       screenshotCamera.aspect = preset.width / preset.height;
       screenshotCamera.updateProjectionMatrix();
 
+      console.log('Camera position:', screenshotCamera.position);
+      console.log('Number of lights in scene:', scene.children.filter(c => c.isLight).length);
+
+      // Force the renderer to compile the scene with the environment
+      // This ensures all materials and environment maps are ready
+      console.log('Compiling scene for screenshot renderer...');
+      screenshotRenderer.compile(scene, screenshotCamera);
+      console.log('Scene compiled');
+
       // Render the scene (which already has all lights, environment, and models)
+      console.log('Rendering screenshot...');
       screenshotRenderer.render(scene, screenshotCamera);
+      console.log('Screenshot rendered');
+
+      // Restore original environment for the main viewer
+      scene.environment = originalEnvironment;
 
       // Get image data
       const imageData = screenshotCanvas.toDataURL('image/png');
@@ -404,6 +461,9 @@
       // Set texture mapping
       texture.mapping = THREE.EquirectangularReflectionMapping;
 
+      // Store the original texture for screenshot regeneration
+      originalHDRITexture = texture.clone();
+
       // Generate PMREM
       const envMap = pmremGenerator.fromEquirectangular(texture).texture;
 
@@ -412,7 +472,7 @@
       scene.environment = envMap;
       updateEnvironmentIntensity();
 
-      // Cleanup
+      // Cleanup original (we have a clone)
       texture.dispose();
       URL.revokeObjectURL(fileURL);
 
@@ -463,6 +523,9 @@
     const luminance = getColorLuminance(backgroundColor);
     isLightBackground = luminance > 0.5;
   }
+
+  // Derived reactive flag for card styling
+  $: isDarkCard = isLightBackground && !transparentBackground;
 
   async function loadModel() {
     try {
@@ -605,9 +668,40 @@
     }
   }
 
-  function handleDownload() {
-    const url = pb.files.getUrl(asset, asset.file);
-    window.open(url, '_blank');
+  async function handleShowInExplorer() {
+    await window.electronAPI.showInExplorer(asset.id);
+  }
+
+  // Auto-save notes with debouncing
+  async function saveNotes() {
+    savingNotes = true;
+    notesSaved = false;
+
+    try {
+      await window.electronAPI.updateAsset(asset.id, { description });
+      notesSaved = true;
+
+      // Hide "saved" indicator after 2 seconds
+      setTimeout(() => {
+        notesSaved = false;
+      }, 2000);
+    } catch (error) {
+      console.error('Error saving notes:', error);
+    } finally {
+      savingNotes = false;
+    }
+  }
+
+  function handleNotesInput() {
+    // Clear existing timeout
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+    }
+
+    // Set new timeout to save after 1 second of no typing
+    saveTimeout = setTimeout(() => {
+      saveNotes();
+    }, 1000);
   }
 
   function handleOverlayKeydown(e) {
@@ -693,12 +787,12 @@
         </div>
 
         <button
-          on:click={handleDownload}
+          on:click={handleShowInExplorer}
           class="glass-button p-3"
-          title="Download"
+          title="Show in Explorer"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
           </svg>
         </button>
         <button
@@ -759,16 +853,17 @@
           </button>
 
           {#if showControls}
-            <div class="p-4 space-y-4 w-64 animate-slide-up transition-all duration-300 {isLightBackground && !transparentBackground ? 'glass-card-light' : 'glass-card'}">
+            <!-- Environment Controls Card -->
+            <div class="p-4 space-y-4 w-64 animate-slide-up transition-all duration-300 {isDarkCard ? 'glass-card-light' : 'glass-card'}">
               <h3 class="font-semibold text-sm gradient-text">Environment</h3>
 
               <!-- Environment Toggle -->
               <div class="flex items-center justify-between">
-                <label for="env-toggle" class="text-sm {isLightBackground && !transparentBackground ? 'text-white' : 'text-white/80'}">Use Environment Map</label>
+                <label for="env-toggle" class="text-sm {isDarkCard ? 'text-white' : 'text-white/80'}">Use Environment Map</label>
                 <button
                   id="env-toggle"
                   on:click={() => useEnvironment = !useEnvironment}
-                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {useEnvironment ? 'bg-indigo-500' : isLightBackground && !transparentBackground ? 'bg-white/30' : 'bg-white/20'}"
+                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {useEnvironment ? 'bg-indigo-500' : isDarkCard ? 'bg-white/30' : 'bg-white/20'}"
                 >
                   <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {useEnvironment ? 'translate-x-6' : 'translate-x-1'}"></span>
                 </button>
@@ -776,11 +871,11 @@
 
               <!-- Grid Toggle -->
               <div class="flex items-center justify-between">
-                <label for="grid-toggle" class="text-sm {isLightBackground && !transparentBackground ? 'text-white' : 'text-white/80'}">Show Grid</label>
+                <label for="grid-toggle" class="text-sm {isDarkCard ? 'text-white' : 'text-white/80'}">Show Grid</label>
                 <button
                   id="grid-toggle"
                   on:click={() => showGrid = !showGrid}
-                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {showGrid ? 'bg-indigo-500' : isLightBackground && !transparentBackground ? 'bg-white/30' : 'bg-white/20'}"
+                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {showGrid ? 'bg-indigo-500' : isDarkCard ? 'bg-white/30' : 'bg-white/20'}"
                 >
                   <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {showGrid ? 'translate-x-6' : 'translate-x-1'}"></span>
                 </button>
@@ -788,11 +883,11 @@
 
               <!-- Transparent Background Toggle -->
               <div class="flex items-center justify-between">
-                <label for="transparent-toggle" class="text-sm {isLightBackground && !transparentBackground ? 'text-white' : 'text-white/80'}">Transparent Background</label>
+                <label for="transparent-toggle" class="text-sm {isDarkCard ? 'text-white' : 'text-white/80'}">Transparent Background</label>
                 <button
                   id="transparent-toggle"
                   on:click={() => transparentBackground = !transparentBackground}
-                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {transparentBackground ? 'bg-indigo-500' : isLightBackground && !transparentBackground ? 'bg-white/30' : 'bg-white/20'}"
+                  class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {transparentBackground ? 'bg-indigo-500' : isDarkCard ? 'bg-white/30' : 'bg-white/20'}"
                 >
                   <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {transparentBackground ? 'translate-x-6' : 'translate-x-1'}"></span>
                 </button>
@@ -800,8 +895,8 @@
 
               <!-- Background Color Selector (only when not transparent) -->
               {#if !transparentBackground}
-                <div class="space-y-2 pt-2 border-t {isLightBackground ? 'border-white/20' : 'border-white/10'}">
-                  <label class="text-sm font-medium {isLightBackground ? 'text-white' : 'text-white/80'}">Background Color</label>
+                <div class="space-y-2 pt-2 border-t {isDarkCard ? 'border-white/20' : 'border-white/10'}">
+                  <label for="bg-color-picker" class="text-sm font-medium {isDarkCard ? 'text-white' : 'text-white/80'}">Background Color</label>
                   <div class="flex flex-wrap gap-2">
                     {#each colorPresets as preset}
                       <button
@@ -824,6 +919,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
                       </svg>
                       <input
+                        id="bg-color-picker"
                         type="color"
                         bind:value={backgroundColor}
                         on:change={() => updateSceneBackground()}
@@ -839,8 +935,8 @@
               {#if useEnvironment}
                 <div class="space-y-2">
                   <div class="flex items-center justify-between">
-                    <label for="intensity" class="text-sm {isLightBackground && !transparentBackground ? 'text-white' : 'text-white/80'}">Intensity</label>
-                    <span class="text-xs {isLightBackground && !transparentBackground ? 'text-white/70' : 'text-white/60'}">{environmentIntensity.toFixed(1)}</span>
+                    <label for="intensity" class="text-sm {isDarkCard ? 'text-white' : 'text-white/80'}">Intensity</label>
+                    <span class="text-xs {isDarkCard ? 'text-white/70' : 'text-white/60'}">{environmentIntensity.toFixed(1)}</span>
                   </div>
                   <input
                     id="intensity"
@@ -849,13 +945,13 @@
                     max="2"
                     step="0.1"
                     bind:value={environmentIntensity}
-                    class="w-full h-2 rounded-lg appearance-none cursor-pointer slider {isLightBackground && !transparentBackground ? 'bg-white/30' : 'bg-white/20'}"
+                    class="w-full h-2 rounded-lg appearance-none cursor-pointer slider {isDarkCard ? 'slider-dark bg-gray-400' : 'bg-white/20'}"
                   />
                 </div>
 
                 <!-- Custom HDRI Upload -->
-                <div class="space-y-3 pt-2 border-t {isLightBackground && !transparentBackground ? 'border-white/20' : 'border-white/10'}">
-                  <label for="hdri-file" class="text-sm font-medium {isLightBackground && !transparentBackground ? 'text-white' : 'text-white/80'}">Custom HDRI</label>
+                <div class="space-y-3 pt-2 border-t {isDarkCard ? 'border-white/20' : 'border-white/10'}">
+                  <label for="hdri-file" class="text-sm font-medium {isDarkCard ? 'text-white' : 'text-white/80'}">Custom HDRI</label>
 
                   {#if customHDRI}
                     <!-- Show when custom HDRI is loaded -->
@@ -885,7 +981,7 @@
                     />
                     <label
                       for="hdri-file"
-                      class="w-full py-2 px-4 text-center cursor-pointer flex items-center justify-center space-x-2 {isLoadingHDRI ? 'opacity-50 cursor-not-allowed' : ''} {isLightBackground && !transparentBackground ? 'glass-button-light' : 'glass-button'}"
+                      class="w-full py-2 px-4 text-center cursor-pointer flex items-center justify-center space-x-2 {isLoadingHDRI ? 'opacity-50 cursor-not-allowed' : ''} {isDarkCard ? 'glass-button-light' : 'glass-button'}"
                     >
                       {#if isLoadingHDRI}
                         <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -900,7 +996,7 @@
                         <span class="text-sm">Upload HDRI</span>
                       {/if}
                     </label>
-                    <p class="text-xs {isLightBackground && !transparentBackground ? 'text-white/60' : 'text-white/40'}">Supports: .hdr, .jpg, .png (max 15MB)</p>
+                    <p class="text-xs {isDarkCard ? 'text-white/60' : 'text-white/40'}">Supports: .hdr, .jpg, .png (max 15MB)</p>
                   {/if}
 
                   <!-- Error message -->
@@ -912,10 +1008,53 @@
                 </div>
               {/if}
 
-              <div class="pt-2 border-t {isLightBackground && !transparentBackground ? 'border-white/20' : 'border-white/10'}">
-                <p class="text-xs {isLightBackground && !transparentBackground ? 'text-white/60' : 'text-white/50'}">Environment map provides realistic lighting and reflections</p>
+              <div class="pt-2 border-t {isDarkCard ? 'border-white/20' : 'border-white/10'}">
+                <p class="text-xs {isDarkCard ? 'text-white/60' : 'text-white/50'}">Environment map provides realistic lighting and reflections</p>
               </div>
             </div>
+          <!-- Notes Section -->
+          <div class="w-64 animate-slide-up transition-all duration-300 {isDarkCard ? 'glass-card-light' : 'glass-card'}">
+            <!-- Header - Always visible -->
+            <button
+              on:click={() => notesExpanded = !notesExpanded}
+              class="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
+            >
+              <div class="flex items-center space-x-2">
+                <svg class="w-4 h-4 {isDarkCard ? 'text-white' : 'text-white/80'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <h3 class="font-semibold text-sm gradient-text">Notes</h3>
+              </div>
+              <div class="flex items-center space-x-2">
+                {#if savingNotes}
+                  <span class="text-xs {isDarkCard ? 'text-white/60' : 'text-white/50'}">Saving...</span>
+                {:else if notesSaved}
+                  <span class="text-xs text-green-400">Saved</span>
+                {/if}
+                <svg
+                  class="w-4 h-4 transition-transform {notesExpanded ? 'rotate-180' : ''} {isDarkCard ? 'text-white/60' : 'text-white/40'}"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </button>
+
+            <!-- Expandable Content -->
+            {#if notesExpanded}
+              <div class="px-4 pb-4 space-y-2 animate-slide-up">
+                <textarea
+                  bind:value={description}
+                  on:input={handleNotesInput}
+                  placeholder="Add notes or description for this model..."
+                  class="w-full h-32 px-3 py-2 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all {isDarkCard ? 'bg-white/10 text-gray-900 placeholder-gray-500 border border-white/20' : 'bg-white/5 text-white/90 placeholder-white/30 border border-white/10'}"
+                ></textarea>
+                <p class="text-xs {isDarkCard ? 'text-white/50' : 'text-white/40'}">Changes save automatically</p>
+              </div>
+            {/if}
+          </div>
           {/if}
         </div>
       {/if}
@@ -992,6 +1131,25 @@
     background: rgba(255, 255, 255, 0.2);
     border-radius: 4px;
     height: 8px;
+  }
+
+  /* Dark slider variant for light backgrounds */
+  input[type="range"].slider-dark::-webkit-slider-thumb {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  }
+
+  input[type="range"].slider-dark::-moz-range-thumb {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  }
+
+  input[type="range"].slider-dark::-webkit-slider-track {
+    background: rgba(107, 114, 128, 0.4);
+  }
+
+  input[type="range"].slider-dark::-moz-range-track {
+    background: rgba(107, 114, 128, 0.4);
   }
 
   /* Light background variants - for when viewer background is light */

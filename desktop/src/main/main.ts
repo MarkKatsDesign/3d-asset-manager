@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
 import * as path from "path";
 import { DatabaseService } from "./services/database.js";
 import { FileWatcherService } from "./services/fileWatcher.js";
@@ -252,6 +252,16 @@ ipcMain.handle(
     }
   }
 );
+
+// Show file in explorer
+ipcMain.handle("file:showInExplorer", async (_event, id: number) => {
+  const asset = dbService.getAsset(id);
+  if (asset && asset.filePath) {
+    shell.showItemInFolder(asset.filePath);
+    return true;
+  }
+  return false;
+});
 
 // App lifecycle
 app.whenReady().then(async () => {
