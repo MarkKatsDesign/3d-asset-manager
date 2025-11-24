@@ -2,6 +2,10 @@
   import { onMount, onDestroy } from 'svelte';
   import * as THREE from 'three';
   import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+  import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+  import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
+  import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+  import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
   import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
   import { pb } from '../pocketbase';
@@ -308,70 +312,108 @@
   }
 
   function loadModel() {
-    const loader = new GLTFLoader();
     const modelUrl = pb.files.getUrl(asset, asset.file);
 
-    loader.load(
-      modelUrl,
-      (gltf) => {
-        const model = gltf.scene;
+    // Get file extension
+    const fileName = asset.file.toLowerCase();
+    const extension = fileName.substring(fileName.lastIndexOf('.'));
 
-        // Center and scale model
-        const box = new THREE.Box3().setFromObject(model);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = 2 / maxDim;
+    console.log('Loading file with extension:', extension);
 
-        // Debug logging
-        console.log('Model bounds:', { center, size, maxDim, scale });
-        console.log('Model before centering:', model.position);
+    // Helper function to process and add model to scene
+    const processModel = (model) => {
+      // Center and scale model
+      const box = new THREE.Box3().setFromObject(model);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const scale = 2 / maxDim;
 
-        // Create a parent group to ensure proper centering
-        const modelGroup = new THREE.Group();
-        modelGroup.add(model);
+      // Debug logging
+      console.log('Model bounds:', { center, size, maxDim, scale });
+      console.log('Model before centering:', model.position);
 
-        // Center the model within the group
-        model.position.set(-center.x, -center.y, -center.z);
+      // Create a parent group to ensure proper centering
+      const modelGroup = new THREE.Group();
+      modelGroup.add(model);
 
-        // Scale the group
-        modelGroup.scale.setScalar(scale);
+      // Center the model within the group
+      model.position.set(-center.x, -center.y, -center.z);
 
-        console.log('Model after centering:', model.position);
+      // Scale the group
+      modelGroup.scale.setScalar(scale);
 
-        // Enable shadows
-        model.traverse((child) => {
-          if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-          }
-        });
+      console.log('Model after centering:', model.position);
 
-        scene.add(modelGroup);
+      // Enable shadows
+      model.traverse((child) => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
 
-        // Adjust camera to ensure model is visible
-        const distance = 5;
-        camera.position.set(distance, distance, distance);
-        camera.lookAt(0, 0, 0);
-        controls.target.set(0, 0, 0);
-        controls.update();
+      scene.add(modelGroup);
 
-        console.log('Camera position:', camera.position);
-        console.log('Camera looking at:', controls.target);
+      // Adjust camera to ensure model is visible
+      const distance = 5;
+      camera.position.set(distance, distance, distance);
+      camera.lookAt(0, 0, 0);
+      controls.target.set(0, 0, 0);
+      controls.update();
 
-        loading = false;
-      },
-      (progress) => {
-        // Progress callback
+      console.log('Camera position:', camera.position);
+      console.log('Camera looking at:', controls.target);
+
+      loading = false;
+    };
+
+    // Progress callback
+    const onProgress = (progress) => {
+      if (progress.total > 0) {
         const percentComplete = (progress.loaded / progress.total) * 100;
         console.log(`Loading: ${percentComplete.toFixed(2)}%`);
-      },
-      (err) => {
-        console.error('Error loading model:', err);
-        error = 'Failed to load 3D model. Please check the file format.';
-        loading = false;
       }
-    );
+    };
+
+    // Error callback
+    const onError = (err) => {
+      console.error('Error loading model:', err);
+      error = `Failed to load 3D model (${extension} format).`;
+      loading = false;
+    };
+
+    // Load based on file extension
+    if (extension === '.glb' || extension === '.gltf') {
+      const loader = new GLTFLoader();
+      loader.load(modelUrl, (gltf) => processModel(gltf.scene), onProgress, onError);
+    } else if (extension === '.obj') {
+      const loader = new OBJLoader();
+      loader.load(modelUrl, (obj) => processModel(obj), onProgress, onError);
+    } else if (extension === '.fbx') {
+      const loader = new FBXLoader();
+      loader.load(modelUrl, (fbx) => processModel(fbx), onProgress, onError);
+    } else if (extension === '.stl') {
+      const loader = new STLLoader();
+      loader.load(
+        modelUrl,
+        (geometry) => {
+          // STL loader returns geometry, not a mesh, so we need to create a mesh
+          const material = new THREE.MeshStandardMaterial({
+            color: 0xaaaaaa,
+            roughness: 0.5,
+            metalness: 0.5
+          });
+          const mesh = new THREE.Mesh(geometry, material);
+          processModel(mesh);
+        },
+        onProgress,
+        onError
+      );
+    } else {
+      error = `Unsupported file format: ${extension}`;
+      loading = false;
+    }
   }
 
   function animate() {

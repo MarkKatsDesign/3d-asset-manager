@@ -2,6 +2,10 @@
   import { onMount, onDestroy } from 'svelte';
   import * as THREE from 'three';
   import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+  import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+  import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
+  import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+  import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
   import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
   import { localAssetStore } from '../stores/localAssetStore';
@@ -557,72 +561,122 @@
       const blob = new Blob([modelData]);
       currentBlobUrl = URL.createObjectURL(blob);
 
-      const loader = new GLTFLoader();
+      // Get file extension
+      const fileName = asset.file.toLowerCase();
+      const extension = fileName.substring(fileName.lastIndexOf('.'));
 
-      loader.load(
-        currentBlobUrl,
-        (gltf) => {
-          const model = gltf.scene;
+      console.log('Loading file with extension:', extension);
 
-          // Center and scale model
-          const box = new THREE.Box3().setFromObject(model);
-          const center = box.getCenter(new THREE.Vector3());
-          const size = box.getSize(new THREE.Vector3());
-          const maxDim = Math.max(size.x, size.y, size.z);
-          const scale = 2 / maxDim;
+      // Helper function to process and add model to scene
+      const processModel = (model) => {
+        // Center and scale model
+        const box = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scale = 2 / maxDim;
 
-          // Debug logging
-          console.log('Model bounds:', { center, size, maxDim, scale });
-          console.log('Model before centering:', model.position);
+        // Debug logging
+        console.log('Model bounds:', { center, size, maxDim, scale });
+        console.log('Model before centering:', model.position);
 
-          // Create a parent group to ensure proper centering
-          const modelGroup = new THREE.Group();
-          modelGroup.add(model);
+        // Create a parent group to ensure proper centering
+        const modelGroup = new THREE.Group();
+        modelGroup.add(model);
 
-          // Center the model within the group
-          model.position.set(-center.x, -center.y, -center.z);
+        // Center the model within the group
+        model.position.set(-center.x, -center.y, -center.z);
 
-          // Scale the group
-          modelGroup.scale.setScalar(scale);
+        // Scale the group
+        modelGroup.scale.setScalar(scale);
 
-          console.log('Model after centering:', model.position);
+        console.log('Model after centering:', model.position);
 
-          // Enable shadows
-          model.traverse((child) => {
-            if (child.isMesh) {
-              child.castShadow = true;
-              child.receiveShadow = true;
-            }
-          });
-
-          scene.add(modelGroup);
-
-          // Adjust camera to ensure model is visible
-          const distance = 5;
-          camera.position.set(distance, distance, distance);
-          camera.lookAt(0, 0, 0);
-          controls.target.set(0, 0, 0);
-          controls.update();
-
-          console.log('Camera position:', camera.position);
-          console.log('Camera looking at:', controls.target);
-
-          loading = false;
-          animate(); // Start animation loop
-        },
-        (progress) => {
-          // Progress callback
-          if (progress.total > 0) {
-            const percentComplete = (progress.loaded / progress.total) * 100;
-            console.log(`Loading: ${percentComplete.toFixed(2)}%`);
+        // Enable shadows
+        model.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
           }
-        },
-        (err) => {
-          console.error('Error loading model:', err);
-          error = 'Failed to load 3D model from local file.';
-          loading = false;
+        });
+
+        scene.add(modelGroup);
+
+        // Adjust camera to ensure model is visible
+        const distance = 5;
+        camera.position.set(distance, distance, distance);
+        camera.lookAt(0, 0, 0);
+        controls.target.set(0, 0, 0);
+        controls.update();
+
+        console.log('Camera position:', camera.position);
+        console.log('Camera looking at:', controls.target);
+
+        loading = false;
+        animate(); // Start animation loop
+      };
+
+      // Progress callback
+      const onProgress = (progress) => {
+        if (progress.total > 0) {
+          const percentComplete = (progress.loaded / progress.total) * 100;
+          console.log(`Loading: ${percentComplete.toFixed(2)}%`);
         }
-      );
+      };
+
+      // Error callback
+      const onError = (err) => {
+        console.error('Error loading model:', err);
+        error = `Failed to load 3D model (${extension} format).`;
+        loading = false;
+      };
+
+      // Load based on file extension
+      if (extension === '.glb' || extension === '.gltf') {
+        const loader = new GLTFLoader();
+        loader.load(
+          currentBlobUrl,
+          (gltf) => processModel(gltf.scene),
+          onProgress,
+          onError
+        );
+      } else if (extension === '.obj') {
+        const loader = new OBJLoader();
+        loader.load(
+          currentBlobUrl,
+          (obj) => processModel(obj),
+          onProgress,
+          onError
+        );
+      } else if (extension === '.fbx') {
+        const loader = new FBXLoader();
+        loader.load(
+          currentBlobUrl,
+          (fbx) => processModel(fbx),
+          onProgress,
+          onError
+        );
+      } else if (extension === '.stl') {
+        const loader = new STLLoader();
+        loader.load(
+          currentBlobUrl,
+          (geometry) => {
+            // STL loader returns geometry, not a mesh, so we need to create a mesh
+            const material = new THREE.MeshStandardMaterial({
+              color: 0xaaaaaa,
+              roughness: 0.5,
+              metalness: 0.5
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            processModel(mesh);
+          },
+          onProgress,
+          onError
+        );
+      } else {
+        error = `Unsupported file format: ${extension}`;
+        loading = false;
+      }
     } catch (err) {
       console.error('Error getting file path:', err);
       error = 'Failed to access local file.';

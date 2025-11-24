@@ -2,6 +2,9 @@
   import { assetStore } from '../stores/assetStore';
   import * as THREE from 'three';
   import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+  import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+  import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+  import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 
   export let onClose;
 
@@ -44,12 +47,12 @@
 
   async function handleFileSelect(selectedFile) {
     // Validate file type
-    const validExtensions = ['.glb', '.gltf'];
+    const validExtensions = ['.glb', '.gltf', '.obj', '.fbx', '.stl'];
     const fileName = selectedFile.name.toLowerCase();
     const isValid = validExtensions.some(ext => fileName.endsWith(ext));
 
     if (!isValid) {
-      error = 'Please select a valid 3D model file (.glb or .gltf)';
+      error = 'Please select a valid 3D model file (.glb, .gltf, .obj, .fbx, or .stl)';
       return;
     }
 
@@ -58,7 +61,7 @@
 
     // Set default name from filename
     if (!name) {
-      name = selectedFile.name.replace(/\.(glb|gltf)$/i, '');
+      name = selectedFile.name.replace(/\.(glb|gltf|obj|fbx|stl)$/i, '');
     }
 
     // Generate thumbnail automatically
@@ -107,18 +110,42 @@
       directionalLight.position.set(5, 10, 7.5);
       scene.add(directionalLight);
 
-      // Load the model
-      const loader = new GLTFLoader();
-      const gltf = await new Promise((resolve, reject) => {
-        loader.load(
-          fileURL,
-          (loadedGltf) => resolve(loadedGltf),
-          undefined,
-          (err) => reject(err)
-        );
-      });
+      // Load the model based on file extension
+      const fileName = modelFile.name.toLowerCase();
+      const extension = fileName.substring(fileName.lastIndexOf('.'));
 
-      const model = gltf.scene;
+      let model;
+
+      if (extension === '.glb' || extension === '.gltf') {
+        const loader = new GLTFLoader();
+        const gltf = await new Promise((resolve, reject) => {
+          loader.load(fileURL, (loadedGltf) => resolve(loadedGltf), undefined, (err) => reject(err));
+        });
+        model = gltf.scene;
+      } else if (extension === '.obj') {
+        const loader = new OBJLoader();
+        model = await new Promise((resolve, reject) => {
+          loader.load(fileURL, (obj) => resolve(obj), undefined, (err) => reject(err));
+        });
+      } else if (extension === '.fbx') {
+        const loader = new FBXLoader();
+        model = await new Promise((resolve, reject) => {
+          loader.load(fileURL, (fbx) => resolve(fbx), undefined, (err) => reject(err));
+        });
+      } else if (extension === '.stl') {
+        const loader = new STLLoader();
+        const geometry = await new Promise((resolve, reject) => {
+          loader.load(fileURL, (geo) => resolve(geo), undefined, (err) => reject(err));
+        });
+        const material = new THREE.MeshStandardMaterial({
+          color: 0xaaaaaa,
+          roughness: 0.5,
+          metalness: 0.5
+        });
+        model = new THREE.Mesh(geometry, material);
+      } else {
+        throw new Error(`Unsupported file format: ${extension}`);
+      }
 
       // Calculate bounding box for the original model
       const box = new THREE.Box3().setFromObject(model);
@@ -321,11 +348,11 @@
             <div>
               <p class="text-lg font-semibold mb-1">Drop your 3D model here</p>
               <p class="text-white/60 text-sm">or click to browse</p>
-              <p class="text-white/40 text-xs mt-2">Supports: .glb, .gltf</p>
+              <p class="text-white/40 text-xs mt-2">Supports: .glb, .gltf, .obj, .fbx, .stl</p>
             </div>
             <input
               type="file"
-              accept=".glb,.gltf"
+              accept=".glb,.gltf,.obj,.fbx,.stl"
               on:change={handleFileInput}
               class="hidden"
               id="file-input"
