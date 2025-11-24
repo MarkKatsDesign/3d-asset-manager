@@ -155,6 +155,39 @@ export async function generateThumbnail(assetId, filePath = '', width = 400, hei
           model.position.set(-center.x, -center.y, -center.z);
           modelGroup.scale.setScalar(scale);
 
+          // Enhance materials that don't have textures
+          model.traverse((child) => {
+            if (child.isMesh && child.material) {
+              const materials = Array.isArray(child.material) ? child.material : [child.material];
+
+              materials.forEach((mat, index) => {
+                // Check if material lacks textures
+                const hasTextures = mat.map || mat.normalMap || mat.roughnessMap || mat.metalnessMap || mat.aoMap;
+
+                // If no textures, replace with a nice matte metal material
+                if (!hasTextures) {
+                  const color = mat.color || new THREE.Color(0x444444);
+
+                  const enhancedMaterial = new THREE.MeshStandardMaterial({
+                    color: color,
+                    metalness: 0.7,
+                    roughness: 0.3,
+                    envMapIntensity: 1.2,
+                    flatShading: false
+                  });
+
+                  if (Array.isArray(child.material)) {
+                    child.material[index] = enhancedMaterial;
+                  } else {
+                    child.material = enhancedMaterial;
+                  }
+
+                  mat.dispose();
+                }
+              });
+            }
+          });
+
           scene.add(modelGroup);
 
           // Smart camera positioning based on model bounds
@@ -226,9 +259,10 @@ export async function generateThumbnail(assetId, filePath = '', width = 400, hei
           (geometry) => {
             // STL returns geometry, need to create mesh
             const material = new THREE.MeshStandardMaterial({
-              color: 0xaaaaaa,
-              roughness: 0.5,
-              metalness: 0.5
+              color: 0x444444,      // Dark gray
+              metalness: 0.7,       // More metallic
+              roughness: 0.3,       // Smoother matte finish
+              envMapIntensity: 1.2
             });
             const mesh = new THREE.Mesh(geometry, material);
             onLoad(mesh);

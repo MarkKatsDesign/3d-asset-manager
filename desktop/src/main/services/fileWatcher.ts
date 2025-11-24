@@ -10,7 +10,7 @@ export class FileWatcherService {
   private thumbnailService: ThumbnailService;
 
   // Supported 3D file extensions
-  private supportedExtensions = ['.glb', '.gltf'];
+  private supportedExtensions = ['.glb', '.obj', '.fbx', '.stl'];
 
   constructor(dbService: DatabaseService, thumbnailService: ThumbnailService) {
     this.dbService = dbService;

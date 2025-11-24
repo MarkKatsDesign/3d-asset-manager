@@ -349,11 +349,43 @@
 
       console.log('Model after centering:', model.position);
 
-      // Enable shadows
+      // Enable shadows and enhance materials
       model.traverse((child) => {
         if (child.isMesh) {
           child.castShadow = true;
           child.receiveShadow = true;
+
+          // Enhance materials that don't have textures
+          if (child.material) {
+            const materials = Array.isArray(child.material) ? child.material : [child.material];
+
+            materials.forEach((mat, index) => {
+              // Check if material lacks textures (no map, normalMap, or other texture maps)
+              const hasTextures = mat.map || mat.normalMap || mat.roughnessMap || mat.metalnessMap || mat.aoMap;
+
+              // If no textures, replace with a nice matte metal material
+              if (!hasTextures) {
+                const color = mat.color || new THREE.Color(0x444444); // Preserve original color or use dark gray
+
+                const enhancedMaterial = new THREE.MeshStandardMaterial({
+                  color: color,
+                  metalness: 0.7,  // More metallic
+                  roughness: 0.3,  // Smoother matte finish
+                  envMapIntensity: 1.2,
+                  flatShading: false
+                });
+
+                if (Array.isArray(child.material)) {
+                  child.material[index] = enhancedMaterial;
+                } else {
+                  child.material = enhancedMaterial;
+                }
+
+                // Dispose old material to free memory
+                mat.dispose();
+              }
+            });
+          }
         }
       });
 
@@ -412,9 +444,10 @@
         (geometry) => {
           // STL loader returns geometry, not a mesh, so we need to create a mesh
           const material = new THREE.MeshStandardMaterial({
-            color: 0xaaaaaa,
-            roughness: 0.5,
-            metalness: 0.5
+            color: 0x444444,      // Dark gray
+            metalness: 0.7,       // More metallic
+            roughness: 0.3,       // Smoother matte finish
+            envMapIntensity: 1.2
           });
           const mesh = new THREE.Mesh(geometry, material);
           processModel(mesh);

@@ -138,9 +138,10 @@
           loader.load(fileURL, (geo) => resolve(geo), undefined, (err) => reject(err));
         });
         const material = new THREE.MeshStandardMaterial({
-          color: 0xaaaaaa,
-          roughness: 0.5,
-          metalness: 0.5
+          color: 0x444444,      // Dark gray
+          metalness: 0.7,       // More metallic
+          roughness: 0.3,       // Smoother matte finish
+          envMapIntensity: 1.2
         });
         model = new THREE.Mesh(geometry, material);
       } else {

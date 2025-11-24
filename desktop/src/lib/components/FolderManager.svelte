@@ -74,7 +74,7 @@
     <div class="modal-body">
       <p class="text-white/70 mb-6">
         Add folders containing 3D models to automatically discover and preview them.
-        Supported formats: GLB, GLTF
+        Supported formats: GLB, OBJ, FBX, STL
       </p>
 
       <!-- Add Folder Button -->
