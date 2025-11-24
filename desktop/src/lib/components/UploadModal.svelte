@@ -47,12 +47,12 @@
 
   async function handleFileSelect(selectedFile) {
     // Validate file type
-    const validExtensions = ['.glb', '.gltf', '.obj', '.fbx', '.stl'];
+    const validExtensions = ['.glb', '.obj', '.fbx', '.stl'];
     const fileName = selectedFile.name.toLowerCase();
     const isValid = validExtensions.some(ext => fileName.endsWith(ext));
 
     if (!isValid) {
-      error = 'Please select a valid 3D model file (.glb, .gltf, .obj, .fbx, or .stl)';
+      error = 'Please select a valid 3D model file (.glb, .obj, .fbx, or .stl). Note: GLTF text format is not supported - please use GLB instead.';
       return;
     }
 
@@ -61,7 +61,7 @@
 
     // Set default name from filename
     if (!name) {
-      name = selectedFile.name.replace(/\.(glb|gltf|obj|fbx|stl)$/i, '');
+      name = selectedFile.name.replace(/\.(glb|obj|fbx|stl)$/i, '');
     }
 
     // Generate thumbnail automatically
@@ -348,11 +348,12 @@
             <div>
               <p class="text-lg font-semibold mb-1">Drop your 3D model here</p>
               <p class="text-white/60 text-sm">or click to browse</p>
-              <p class="text-white/40 text-xs mt-2">Supports: .glb, .gltf, .obj, .fbx, .stl</p>
+              <p class="text-white/40 text-xs mt-2">Supports: .glb, .obj, .fbx, .stl</p>
+              <p class="text-amber-400/60 text-[10px] mt-1">⚠️ GLTF text format not supported - use GLB</p>
             </div>
             <input
               type="file"
-              accept=".glb,.gltf,.obj,.fbx,.stl"
+              accept=".glb,.obj,.fbx,.stl"
               on:change={handleFileInput}
               class="hidden"
               id="file-input"

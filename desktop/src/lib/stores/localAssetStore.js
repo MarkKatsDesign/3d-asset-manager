@@ -75,7 +75,7 @@ function createLocalAssetStore() {
           console.log(`Generating thumbnail for asset ${asset.id}: ${asset.name}`);
 
           // Generate thumbnail
-          const thumbnailData = await generateThumbnail(asset.id);
+          const thumbnailData = await generateThumbnail(asset.id, asset.filePath);
 
           // Save to database
           await window.electronAPI.saveThumbnail(asset.id, thumbnailData);
@@ -106,7 +106,7 @@ function createLocalAssetStore() {
           try {
             console.log(`[${successCount + failCount + 1}/${assets.length}] Generating thumbnail for: ${asset.name}`);
 
-            const thumbnailData = await generateThumbnail(asset.id);
+            const thumbnailData = await generateThumbnail(asset.id, asset.filePath);
             await window.electronAPI.saveThumbnail(asset.id, thumbnailData);
 
             successCount++;

@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 
 /**
  * Create a bright studio-style environment map
@@ -56,11 +59,12 @@ function createStudioEnvironment() {
 /**
  * Generate a thumbnail for a 3D model
  * @param {number} assetId - The asset ID
+ * @param {string} filePath - The file path to determine format (optional)
  * @param {number} width - Thumbnail width
  * @param {number} height - Thumbnail height
  * @returns {Promise<string>} Base64 encoded JPEG image
  */
-export async function generateThumbnail(assetId, width = 400, height = 400) {
+export async function generateThumbnail(assetId, filePath = '', width = 400, height = 400) {
   try {
     // Read the model file
     const modelData = await window.electronAPI.readModelFile(assetId);
@@ -121,14 +125,22 @@ export async function generateThumbnail(assetId, width = 400, height = 400) {
     fillLight.position.set(-5, 3, 5);
     scene.add(fillLight);
 
-    // Load the model
-    const loader = new GLTFLoader();
+    // Determine file extension
+    const extension = filePath ? filePath.toLowerCase().substring(filePath.lastIndexOf('.')) : '.glb';
+    console.log(`Loading thumbnail with extension: ${extension}`);
 
+    // Load the model based on file extension
     return new Promise((resolve, reject) => {
-      loader.load(
-        blobUrl,
-        (gltf) => {
-          const model = gltf.scene;
+      const onLoad = (loadedModel) => {
+        // Handle different loader return types
+        let model;
+        if (loadedModel.scene) {
+          // GLTF/GLB returns { scene, ... }
+          model = loadedModel.scene;
+        } else {
+          // OBJ, FBX, STL return the model directly
+          model = loadedModel;
+        }
 
           // Center and frame the model
           const box = new THREE.Box3().setFromObject(model);
@@ -187,16 +199,46 @@ export async function generateThumbnail(assetId, width = 400, height = 400) {
           });
 
           resolve(dataUrl);
-        },
-        undefined,
-        (error) => {
-          console.error('Error loading model for thumbnail:', error);
-          URL.revokeObjectURL(blobUrl);
-          pmremGenerator.dispose();
-          renderer.dispose();
-          reject(error);
-        }
-      );
+      };
+
+      const onError = (error) => {
+        console.error('Error loading model for thumbnail:', error);
+        URL.revokeObjectURL(blobUrl);
+        pmremGenerator.dispose();
+        renderer.dispose();
+        reject(error);
+      };
+
+      // Select appropriate loader based on file extension
+      if (extension === '.glb' || extension === '.gltf') {
+        const loader = new GLTFLoader();
+        loader.load(blobUrl, onLoad, undefined, onError);
+      } else if (extension === '.obj') {
+        const loader = new OBJLoader();
+        loader.load(blobUrl, onLoad, undefined, onError);
+      } else if (extension === '.fbx') {
+        const loader = new FBXLoader();
+        loader.load(blobUrl, onLoad, undefined, onError);
+      } else if (extension === '.stl') {
+        const loader = new STLLoader();
+        loader.load(
+          blobUrl,
+          (geometry) => {
+            // STL returns geometry, need to create mesh
+            const material = new THREE.MeshStandardMaterial({
+              color: 0xaaaaaa,
+              roughness: 0.5,
+              metalness: 0.5
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            onLoad(mesh);
+          },
+          undefined,
+          onError
+        );
+      } else {
+        reject(new Error(`Unsupported file format: ${extension}`));
+      }
     });
   } catch (error) {
     console.error('Error generating thumbnail:', error);
