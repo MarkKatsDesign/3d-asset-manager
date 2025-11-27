@@ -16,9 +16,11 @@ const isDev = process.env.NODE_ENV === "development";
 
 function createWindow() {
   // Icon path - works for both dev and production
+  // Use .ico for Windows, .png for other platforms
+  const iconFile = process.platform === "win32" ? "icon.ico" : "icon.png";
   const iconPath = isDev
-    ? path.join(__dirname, "../../resources/icon.png")
-    : path.join(process.resourcesPath, "icon.png");
+    ? path.join(__dirname, "../../resources", iconFile)
+    : path.join(process.resourcesPath, "resources", iconFile);
 
   mainWindow = new BrowserWindow({
     width: 1400,
