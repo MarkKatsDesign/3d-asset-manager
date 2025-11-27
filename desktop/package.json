@@ -2,6 +2,12 @@
   "name": "forma-desktop",
   "version": "1.0.0",
   "description": "Forma - Desktop application for managing and previewing local 3D assets",
+  "author": "Mark Kats markkats94@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MarkKatsDesign/3d-asset-manager.git"
+  },
   "main": "dist-electron/main.cjs",
   "type": "module",
   "scripts": {
@@ -53,8 +59,8 @@
         "portable"
       ],
       "icon": "resources/icon.ico",
-      "sign": false,
-      "verifyUpdateCodeSignature": false
+      "signAndEditExecutable": false,
+      "signDlls": false
     },
     "nsis": {
       "oneClick": false,
