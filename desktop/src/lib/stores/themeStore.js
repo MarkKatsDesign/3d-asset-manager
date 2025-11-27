@@ -1,9 +1,9 @@
 import { writable } from 'svelte/store';
 
 export const themes = {
-  cyberpunk: {
-    id: 'cyberpunk',
-    name: 'Cyberpunk Purple',
+  neon: {
+    id: 'neon',
+    name: 'Neon',
     font: 'Inter',
     colors: {
       // Backgrounds
@@ -36,9 +36,9 @@ export const themes = {
     }
   },
 
-  macosLight: {
-    id: 'macosLight',
-    name: 'macOS Light',
+  arctic: {
+    id: 'arctic',
+    name: 'Arctic',
     font: 'Manrope',
     colors: {
       // Backgrounds
@@ -71,9 +71,9 @@ export const themes = {
     }
   },
 
-  macosDark: {
-    id: 'macosDark',
-    name: 'macOS Dark',
+  graphite: {
+    id: 'graphite',
+    name: 'Graphite',
     font: 'Space Grotesk',
     colors: {
       // Backgrounds
@@ -108,10 +108,10 @@ export const themes = {
 };
 
 function createThemeStore() {
-  // Load saved theme from localStorage or default to cyberpunk
+  // Load saved theme from localStorage or default to neon
   const savedTheme = typeof window !== 'undefined'
-    ? localStorage.getItem('theme') || 'cyberpunk'
-    : 'cyberpunk';
+    ? localStorage.getItem('theme') || 'neon'
+    : 'neon';
 
   const { subscribe, set } = writable(savedTheme);
 
@@ -123,7 +123,7 @@ function createThemeStore() {
         localStorage.setItem('theme', themeId);
       }
     },
-    getCurrentTheme: (themeId) => themes[themeId] || themes.cyberpunk
+    getCurrentTheme: (themeId) => themes[themeId] || themes.neon
   };
 }
 

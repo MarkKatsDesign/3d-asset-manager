@@ -27,7 +27,7 @@ function createWindow() {
       sandbox: false,
     },
     icon: path.join(__dirname, "../../resources/icon.png"),
-    title: "3D Asset Manager",
+    title: "Forma",
   });
 
   // Load the app

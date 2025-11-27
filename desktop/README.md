@@ -1,6 +1,6 @@
-# 3D Asset Manager - Desktop Application
+# Forma - Desktop Application
 
-A desktop application for managing and previewing local 3D assets on Windows.
+A powerful desktop application for managing and previewing local 3D models on Windows.
 
 ## Features
 
@@ -13,8 +13,11 @@ A desktop application for managing and previewing local 3D assets on Windows.
 
 ## Supported Formats
 
-- GLB (GL Transmission Format Binary)
-- GLTF (GL Transmission Format)
+- **GLB** (GL Transmission Format Binary) - Full support with textures
+- **GLTF** (GL Transmission Format) - Limited support, external files required
+- **OBJ** (Wavefront) - Geometry only, no textures
+- **FBX** (Autodesk) - Full support with textures
+- **STL** (Stereolithography) - Geometry only, no textures
 
 ## Installation
 
@@ -42,10 +45,13 @@ npm run package:win
 ## Usage
 
 1. **Add Folders** - Click "Manage Folders" to add directories containing 3D models
-2. **Auto-Discovery** - The app will automatically scan and index all GLB/GLTF files
-3. **Browse & Preview** - Click any asset card to view the 3D model
+2. **Auto-Discovery** - The app will automatically scan and index all supported files (.glb, .gltf, .obj, .fbx, .stl)
+3. **Browse & Preview** - Click any asset card to view the 3D model with interactive controls
 4. **Search & Filter** - Use the search bar to find specific models
 5. **Manage Tags** - Add tags to organize your assets
+6. **Add Notes** - Write descriptions that auto-save for each asset
+7. **Screenshot Export** - Capture high-resolution images (1080p, 2K, 4K)
+8. **Show in Explorer** - Quickly locate files in Windows File Explorer
 
 ## Architecture
 
@@ -76,6 +82,13 @@ tsc --noEmit
 
 The app runs Vite dev server on port 5173 and Electron connects to it in development mode.
 
+## Data Storage
+
+- **Database Location**: `%APPDATA%/forma-desktop/assets.db`
+  - Windows: `C:\Users\<YourName>\AppData\Roaming\forma-desktop\assets.db`
+- **Thumbnails**: Stored as BLOB in SQLite database
+- **Model Files**: Remain in their original locations (no copying)
+
 ## Building for Production
 
 ```bash
@@ -90,12 +103,13 @@ This creates installers in the `release/` directory.
 
 ## Roadmap
 
-- [ ] Real thumbnail generation (currently placeholders)
 - [ ] macOS and Linux support
-- [ ] Optional cloud sync with original web app
-- [ ] File format support (FBX, OBJ, etc.)
-- [ ] Batch operations
-- [ ] Model statistics and analysis
+- [ ] Batch operations (rename, tag multiple assets)
+- [ ] Model statistics and analysis (polygon count, texture info)
+- [ ] Collection/project organization
+- [ ] Advanced filtering and sorting
+- [ ] Import/export asset catalogs
+- [ ] Optional cloud backup feature
 
 ## License
 

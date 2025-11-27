@@ -1,107 +1,187 @@
-# 🎨 3D Asset Manager
+# Forma
 
-A modern, full-stack web application for uploading, managing, and previewing 3D assets directly in the browser. Built with cutting-edge technologies and designed for scalability and ease of use.
+> **A powerful desktop application for managing and previewing 3D models locally.**
+
+Built with Electron, Svelte, and Three.js for Windows 10/11.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Svelte](https://img.shields.io/badge/Svelte-4.0+-orange.svg)
-![Three.js](https://img.shields.io/badge/Three.js-Latest-green.svg)
-![PocketBase](https://img.shields.io/badge/PocketBase-0.22+-purple.svg)
+![Platform](https://img.shields.io/badge/platform-Windows-blue.svg)
+![Electron](https://img.shields.io/badge/Electron-28.1.0-47848F.svg)
+![Svelte](https://img.shields.io/badge/Svelte-4.2.8-FF3E00.svg)
+![Three.js](https://img.shields.io/badge/Three.js-0.160.0-000000.svg)
 
-## ✨ Features
+## Overview
 
-- **🔐 Secure Authentication** - User registration and login system
-- **📤 Asset Upload & Management** - Support for GLTF/GLB 3D models with metadata
-- **🖼️ Interactive 3D Preview** - Real-time 3D model viewing with orbit controls
-- **⚡ Real-Time Updates** - Live synchronization across all connected clients
-- **🏷️ Smart Organization** - Tag-based categorization and search functionality
-- **🌐 Cloud Deployment** - Production-ready with automated CI/CD pipeline
-- **📱 Responsive Design** - Works seamlessly on desktop and mobile devices
+**Forma** is a local-first desktop application designed for game developers, VFX artists, 3D designers, and anyone working with 3D models. It solves a simple but critical problem: **Windows doesn't show 3D model previews in File Explorer**.
 
-## 🛠️ Tech Stack
+Instead of uploading files to the cloud or opening each model in heavy 3D software, Forma automatically discovers, indexes, and previews your local 3D models with beautiful thumbnails and an interactive 3D viewer.
 
-| Component | Technology | Purpose |
-|-----------|------------|---------|
-| **Frontend** | [Svelte](https://svelte.dev/) + [Vite](https://vitejs.dev/) | Modern reactive UI framework |
-| **Styling** | [Tailwind CSS](https://tailwindcss.com/) | Utility-first CSS framework |
-| **3D Engine** | [Three.js](https://threejs.org/) | WebGL-based 3D graphics |
-| **Backend** | [PocketBase](https://pocketbase.io/) | Real-time database & file storage |
-| **Deployment** | [Vercel](https://vercel.com/) + [Fly.io](https://fly.io/) | Frontend & backend hosting |
-| **CI/CD** | GitHub Actions | Automated testing and deployment |
+## Screenshots
 
-## 🚀 Quick Start
+![Forma Application](docs/images/screenshot-placeholder.png)
+*Main interface showing asset grid with thumbnails and 3D preview (screenshots coming soon)*
+
+> **Note**: This is an early version. Professional screenshots and demo GIFs will be added soon.
+
+## Features
+
+### Core Features
+- **Local File Indexing** - Automatically discovers 3D models in watched folders
+- **Real-time 3D Preview** - Interactive viewer with orbit controls, lighting, and materials
+- **Thumbnail Generation** - Automatic high-quality thumbnail creation with studio lighting
+- **Folder Watching** - Auto-updates when files are added, modified, or removed
+- **Multi-Format Support** - GLB, GLTF, OBJ, FBX, and STL files
+- **Search & Organization** - Tag-based categorization and powerful search
+- **Notes & Metadata** - Add descriptions with auto-save functionality
+- **100% Offline** - Everything stays on your local machine, no uploads required
+- **Fast Performance** - Direct file system access with SQLite database
+
+### Advanced Features
+- **Screenshot Export** - Capture 3D viewport at multiple resolutions (1080p, 2K, 4K)
+- **Environment Mapping** - HDRI support for realistic lighting
+- **Theme System** - Light/dark themes with customizable backgrounds
+- **File Explorer Integration** - "Show in Explorer" to quickly locate files
+- **Material Support** - Full PBR material rendering with textures
+- **Geometry-Only Formats** - Special handling for formats without textures (OBJ, STL)
+
+## Supported Formats
+
+| Format | Extension | Type | Textures |
+|--------|-----------|------|----------|
+| **GLB** | `.glb` | Binary GLTF | ✅ Full support |
+| **GLTF** | `.gltf` | Text GLTF (limited) | ⚠️ External files required |
+| **OBJ** | `.obj` | Wavefront | ⚠️ Geometry only |
+| **FBX** | `.fbx` | Autodesk | ✅ Full support |
+| **STL** | `.stl` | Stereolithography | ⚠️ Geometry only |
+
+## Installation
 
 ### Prerequisites
 
-- Node.js 18+ 
-- Git
+- **Windows 10/11** (64-bit)
+- **Node.js 18+** (for development only)
 
-### 1. Clone & Install
+### For End Users
+
+**Releases**: Coming soon - watch this repository for the first stable release
+
+**Early Access**: Build from source using the instructions below
+
+### For Developers
+
+**Build from source:**
+
 ```bash
+# Clone the repository
 git clone https://github.com/MarkKatsDesign/3d-asset-manager.git
-cd 3d-asset-manager
-```
+cd 3d-asset-manager/desktop
 
-### 2. Backend Setup
-
-```bash
-cd backend
-./pocketbase serve
-```
-
-Open `http://localhost:8090/_/` and create your admin account.
-
-### 3. Frontend Setup
-
-```bash
-cd frontend
+# Install dependencies
 npm install
-cp .env.example .env
+
+# Run in development mode
 npm run dev
 ```
 
-Visit `http://localhost:5173` to see your application running!
+The application will launch automatically. On first run:
+1. Click "Manage Folders" in the top-right
+2. Select a directory containing 3D models (.glb, .obj, .fbx, .stl)
+3. Forma will automatically scan and generate thumbnails
+4. Click any asset to preview in 3D!
 
-## 📂 Project Structure
+## Development
 
-```
-3d-asset-manager/
-├── frontend/                 # Svelte application
-│   ├── src/
-│   │   ├── lib/
-│   │   │   ├── pocketbase.js
-│   │   │   └── components/
-│   │   └── routes/
-│   ├── static/
-│   └── package.json
-├── backend/                 # PocketBase backend
-│   ├── pocketbase           # PocketBase binary
-│   ├── pb_data/             # Database & file storage
-│   ├── pb_migrations/       # Database schema
-│   └── Dockerfile
-└── .github/workflows/       # CI/CD automation
+### Build for Production
+
+```bash
+# Build renderer and main process
+npm run build
+
+# Package as Windows installer
+npm run package:win
 ```
 
-## 🌐 Deployment
+Output files will be in `release/` directory:
+- `Forma Setup.exe` - NSIS installer
+- `Forma.exe` - Portable executable
 
-This project is configured for one-click deployment:
+> **Note**: Icon files are currently placeholders. Custom icons will be added before the first release.
 
-- **Frontend**: Automatically deploys to Vercel on push to main
-- **Backend**: Automatically deploys to Fly.io with persistent storage
-- **Database**: Migrations run automatically on deployment
+## Architecture
 
-See SETUP.md for detailed deployment instructions.
+### Technology Stack
 
-## 🎯 Use Cases
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Desktop Framework** | Electron 28.1.0 | Cross-platform desktop apps |
+| **Frontend** | Svelte 4.2.8 | Reactive UI framework |
+| **3D Engine** | Three.js 0.160.0 | WebGL-based 3D rendering |
+| **Database** | better-sqlite3 9.2.2 | Fast local storage |
+| **File Watching** | chokidar 3.5.3 | File system monitoring |
+| **Build Tool** | Vite 5.0.11 | Fast builds and HMR |
+| **Styling** | Tailwind CSS 3.4.1 | Utility-first CSS |
 
-- **Design Teams** - Share and review 3D assets across team members
-- **Game Development** - Manage game assets and prototypes
-- **Architecture** - Preview and organize architectural models
+### Project Structure
+
+```
+desktop/
+├── src/
+│   ├── main/                   # Electron main process
+│   │   ├── main.ts             # Application entry point
+│   │   └── services/
+│   │       ├── database.ts     # SQLite database service
+│   │       ├── fileWatcher.ts  # Folder watching and auto-indexing
+│   │       └── thumbnail.ts    # Thumbnail generation coordination
+│   ├── preload/                # Secure IPC bridge
+│   │   └── preload.ts          # Exposes safe APIs to renderer
+│   └── lib/                    # Svelte UI components
+│       ├── components/
+│       │   ├── AssetViewer.svelte    # 3D viewer with Three.js
+│       │   ├── AssetCard.svelte      # Thumbnail cards
+│       │   ├── AssetGrid.svelte      # Grid layout
+│       │   ├── FolderManager.svelte  # Folder management
+│       │   └── ...
+│       ├── stores/
+│       │   ├── localAssetStore.js    # Asset state management
+│       │   └── folderStore.js        # Folder state management
+│       └── utils/
+│           └── thumbnailGenerator.js # Client-side thumbnail generation
+├── package.json
+├── vite.config.ts
+└── README.md
+```
+
+### Data Storage
+
+- **Database Location**: `%APPDATA%/forma-desktop/assets.db`
+  - Windows: `C:\Users\<YourName>\AppData\Roaming\forma-desktop\assets.db`
+- **Schema**:
+  - `assets` - Model metadata (name, path, tags, description)
+  - `thumbnails` - Generated preview images (BLOB)
+  - `watched_folders` - Monitored directories
+
+## Use Cases
+
+- **Game Development** - Manage game assets and character models
+- **VFX & Animation** - Organize production assets
+- **3D Printing** - Preview and catalog STL files
+- **Architecture** - Browse architectural models
 - **Education** - Create 3D model libraries for courses
-- **E-commerce** - Product visualization and management
+- **Product Design** - Manage product prototypes and variants
 
-## 🤝 Contributing
+## Roadmap
 
-We welcome contributions!
+- [ ] macOS and Linux support
+- [ ] Batch operations (rename, tag multiple assets)
+- [ ] Model statistics (polygon count, texture information)
+- [ ] Collection/project organization
+- [ ] Advanced filtering and sorting
+- [ ] Import/export asset catalogs
+- [ ] Optional cloud sync (as backup feature)
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
@@ -109,32 +189,30 @@ We welcome contributions!
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📋 Roadmap
-
-- [ ] Drag & drop upload interface
-- [ ] Automatic thumbnail generation
-- [ ] Blender plugin integration
-- [ ] Advanced search and filtering
-- [ ] Team collaboration features
-- [ ] API rate limiting
-- [ ] Asset compression optimization
-
-## 📄 License
+## License
 
 This project is licensed under the [MIT License](./LICENSE).
 
-
-## 👨‍💻 Author
+## Author
 
 **Mark Kats**
 
 - GitHub: [@MarkKatsDesign](https://github.com/MarkKatsDesign)
 - LinkedIn: [linkedin.com/in/mark-kats](https://www.linkedin.com/in/mark-kats/)
 
-## ⭐ Show Your Support
+---
 
-Give a ⭐️ if this project helped you!
+## Legacy Web Application
+
+This repository originally contained a web-based version of this 3D asset management tool. The web application files are preserved in:
+- `frontend/` - Svelte web application
+- `backend/` - PocketBase backend
+- `docs/legacy/` - Web app documentation
+
+The project has shifted focus to **Forma**, the desktop application, for better performance, privacy, and offline capabilities.
 
 ---
 
-_Built with ❤️ using modern web technologies_
+⭐ **Star this repo** if you find it useful!
+
+_Built with Electron, Svelte, and Three.js_
