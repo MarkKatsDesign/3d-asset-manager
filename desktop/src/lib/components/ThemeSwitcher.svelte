@@ -3,9 +3,11 @@
 
   let showMenu = false;
   let currentTheme;
+  let currentThemeObj;
 
   themeStore.subscribe(value => {
     currentTheme = value;
+    currentThemeObj = themes[value];
   });
 
   function selectTheme(themeId) {
@@ -23,6 +25,9 @@
       showMenu = false;
     }
   }
+
+  // Determine if current theme is light
+  $: isLightTheme = currentTheme === 'arctic';
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -39,25 +44,35 @@
   </button>
 
   {#if showMenu}
-    <div class="absolute right-0 mt-2 w-56 theme-menu-glass p-2 rounded-2xl z-50 animate-slide-down">
-      <div class="text-xs font-semibold opacity-60 px-3 py-2">THEMES</div>
+    <div class="absolute right-0 mt-2 w-56 p-2 rounded-2xl z-50 animate-slide-down
+      {isLightTheme ? 'theme-menu-light' : 'theme-menu-dark'}">
+      <div class="text-xs font-semibold px-3 py-2
+        {isLightTheme ? 'text-gray-500' : 'text-white/60'}">
+        THEMES
+      </div>
 
       {#each Object.values(themes) as theme}
         <button
           on:click={() => selectTheme(theme.id)}
           class="w-full px-3 py-2.5 rounded-xl text-left transition-all duration-200 flex items-center justify-between gap-3
-            {currentTheme === theme.id ? 'bg-white/10' : 'hover:bg-white/5'}"
+            {isLightTheme
+              ? (currentTheme === theme.id ? 'bg-gray-200' : 'hover:bg-gray-100')
+              : (currentTheme === theme.id ? 'bg-white/10' : 'hover:bg-white/5')}"
         >
           <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg {theme.id === 'cyberpunk' ? 'bg-gradient-to-br from-purple-500 to-indigo-600' : theme.id === 'macosLight' ? 'bg-gradient-to-br from-gray-100 to-gray-300 border border-gray-400' : 'bg-gradient-to-br from-zinc-800 to-zinc-900'}" />
+            <div class="w-8 h-8 rounded-lg {theme.id === 'neon' ? 'bg-gradient-to-br from-purple-500 to-indigo-600' : theme.id === 'arctic' ? 'bg-gradient-to-br from-gray-100 to-gray-300 border border-gray-400' : 'bg-gradient-to-br from-zinc-800 to-zinc-900'}" />
             <div>
-              <div class="font-medium text-sm">{theme.name}</div>
-              <div class="text-xs opacity-60">{theme.font}</div>
+              <div class="font-medium text-sm {isLightTheme ? 'text-gray-900' : 'text-white'}">
+                {theme.name}
+              </div>
+              <div class="text-xs {isLightTheme ? 'text-gray-500' : 'text-white/60'}">
+                {theme.font}
+              </div>
             </div>
           </div>
 
           {#if currentTheme === theme.id}
-            <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 {isLightTheme ? 'text-blue-500' : 'text-green-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
           {/if}
@@ -68,8 +83,8 @@
 </div>
 
 <style>
-  /* Enhanced frosted glass effect for theme menu */
-  .theme-menu-glass {
+  /* Dark theme menu */
+  .theme-menu-dark {
     background: rgba(20, 20, 30, 0.85);
     backdrop-filter: blur(40px) saturate(180%);
     -webkit-backdrop-filter: blur(40px) saturate(180%);
@@ -77,6 +92,17 @@
     box-shadow:
       0 8px 32px 0 rgba(0, 0, 0, 0.5),
       0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  }
+
+  /* Light theme menu */
+  .theme-menu-light {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow:
+      0 8px 32px 0 rgba(0, 0, 0, 0.15),
+      0 0 0 1px rgba(0, 0, 0, 0.05) inset;
   }
 
   @keyframes slide-down {

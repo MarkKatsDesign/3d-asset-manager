@@ -44,13 +44,11 @@
     <div class="flex items-center justify-between">
       <!-- Logo & Brand -->
       <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-          </svg>
+        <div class="w-10 h-10 rounded-xl overflow-hidden shadow-lg">
+          <img src="../../resources/icon.png" alt="Forma Logo" class="w-full h-full object-cover" />
         </div>
         <div>
-          <h1 class="text-xl font-bold gradient-text">3D Asset Manager</h1>
+          <h1 class="text-xl font-bold gradient-text">Forma</h1>
           <p class="text-xs text-white/60">Preview your local 3D models</p>
         </div>
       </div>

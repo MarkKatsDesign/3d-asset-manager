@@ -17,97 +17,97 @@
   }
 
   /* Theme-specific text color overrides */
-  body[data-theme="macosLight"] {
+  body[data-theme="arctic"] {
     /* Override all white text to dark for light theme */
     color: rgb(17, 24, 39) !important; /* gray-900 */
   }
 
-  body[data-theme="macosLight"] .text-white {
+  body[data-theme="arctic"] .text-white {
     color: rgb(17, 24, 39) !important; /* gray-900 */
   }
 
-  body[data-theme="macosLight"] .text-white\/70 {
+  body[data-theme="arctic"] .text-white\/70 {
     color: rgb(75, 85, 99) !important; /* gray-600 */
   }
 
-  body[data-theme="macosLight"] .text-white\/60 {
+  body[data-theme="arctic"] .text-white\/60 {
     color: rgb(107, 114, 128) !important; /* gray-500 */
   }
 
-  body[data-theme="macosLight"] .text-white\/40 {
+  body[data-theme="arctic"] .text-white\/40 {
     color: rgb(156, 163, 175) !important; /* gray-400 */
   }
 
-  body[data-theme="macosLight"] .glass-card {
+  body[data-theme="arctic"] .glass-card {
     background: rgba(255, 255, 255, 0.8) !important;
     border-color: rgb(229, 231, 235) !important; /* gray-200 */
     box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1) !important;
   }
 
-  body[data-theme="macosLight"] .glass-card:hover {
+  body[data-theme="arctic"] .glass-card:hover {
     background: rgba(255, 255, 255, 1) !important; /* white */
     border-color: rgb(209, 213, 219) !important; /* gray-300 */
     box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.15), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
   }
 
   /* Glass card text for light theme */
-  body[data-theme="macosLight"] .glass-card h3,
-  body[data-theme="macosLight"] .glass-card label,
-  body[data-theme="macosLight"] .glass-card p,
-  body[data-theme="macosLight"] .glass-card span {
+  body[data-theme="arctic"] .glass-card h3,
+  body[data-theme="arctic"] .glass-card label,
+  body[data-theme="arctic"] .glass-card p,
+  body[data-theme="arctic"] .glass-card span {
     color: rgb(17, 24, 39) !important; /* gray-900 */
   }
 
-  body[data-theme="macosLight"] .glass-card .text-sm,
-  body[data-theme="macosLight"] .glass-card .text-xs {
+  body[data-theme="arctic"] .glass-card .text-sm,
+  body[data-theme="arctic"] .glass-card .text-xs {
     color: rgb(75, 85, 99) !important; /* gray-600 */
   }
 
   /* Borders for light theme */
-  body[data-theme="macosLight"] .border-white\/10 {
+  body[data-theme="arctic"] .border-white\/10 {
     border-color: rgb(229, 231, 235) !important; /* gray-200 */
   }
 
   /* Font medium in light theme */
-  body[data-theme="macosLight"] .font-medium {
+  body[data-theme="arctic"] .font-medium {
     color: rgb(17, 24, 39) !important; /* gray-900 */
   }
 
   /* Modal header and footer backgrounds for light theme */
-  body[data-theme="macosLight"] .glass-modal {
+  body[data-theme="arctic"] .glass-modal {
     background: rgba(255, 255, 255, 0.95) !important;
     border-color: rgb(229, 231, 235) !important;
   }
 
-  body[data-theme="macosLight"] .glass-modal > div {
+  body[data-theme="arctic"] .glass-modal > div {
     background: transparent !important;
   }
 
-  body[data-theme="macosLight"] .glass-button {
+  body[data-theme="arctic"] .glass-button {
     background: rgba(243, 244, 246, 0.8) !important; /* gray-100 */
     border-color: rgb(229, 231, 235) !important; /* gray-200 */
     color: rgb(17, 24, 39) !important; /* gray-900 */
   }
 
-  body[data-theme="macosLight"] .glass-button:hover {
+  body[data-theme="arctic"] .glass-button:hover {
     background: rgba(229, 231, 235, 1) !important; /* gray-200 */
     border-color: rgb(209, 213, 219) !important; /* gray-300 */
   }
 
   /* Search input styling for light theme */
-  body[data-theme="macosLight"] input[type="text"],
-  body[data-theme="macosLight"] input[type="search"],
-  body[data-theme="macosLight"] input {
+  body[data-theme="arctic"] input[type="text"],
+  body[data-theme="arctic"] input[type="search"],
+  body[data-theme="arctic"] input {
     background: rgb(243, 244, 246) !important; /* gray-100 */
     border-color: rgb(209, 213, 219) !important; /* gray-300 */
     color: rgb(17, 24, 39) !important; /* gray-900 */
   }
 
-  body[data-theme="macosLight"] input::placeholder {
+  body[data-theme="arctic"] input::placeholder {
     color: rgb(156, 163, 175) !important; /* gray-400 */
   }
 
-  body[data-theme="macosLight"] input:focus {
+  body[data-theme="arctic"] input:focus {
     background: rgb(255, 255, 255) !important; /* white */
     border-color: rgb(59, 130, 246) !important; /* blue-500 */
     outline: none !important;
@@ -115,17 +115,17 @@
   }
 
   /* Search icon colors for light theme */
-  body[data-theme="macosLight"] .text-white\/50 {
+  body[data-theme="arctic"] .text-white\/50 {
     color: rgb(107, 114, 128) !important; /* gray-500 */
   }
 
-  body[data-theme="macosLight"] .text-white\/50:hover,
-  body[data-theme="macosLight"] .hover\:text-white:hover {
+  body[data-theme="arctic"] .text-white\/50:hover,
+  body[data-theme="arctic"] .hover\:text-white:hover {
     color: rgb(17, 24, 39) !important; /* gray-900 */
   }
 
   /* Theme menu background for light theme */
-  body[data-theme="macosLight"] .theme-menu-glass {
+  body[data-theme="arctic"] .theme-menu-glass {
     background: rgba(255, 255, 255, 0.9) !important;
     border-color: rgb(209, 213, 219) !important; /* gray-300 */
     box-shadow: 0 8px 32px 0 rgb(0 0 0 / 0.15), 0 0 0 1px rgb(0 0 0 / 0.05) inset !important;
@@ -133,28 +133,28 @@
   }
 
   /* Theme menu text and elements for light theme */
-  body[data-theme="macosLight"] .theme-menu-glass .opacity-60 {
+  body[data-theme="arctic"] .theme-menu-glass .opacity-60 {
     opacity: 0.6 !important;
     color: rgb(75, 85, 99) !important; /* gray-600 */
   }
 
-  body[data-theme="macosLight"] .theme-menu-glass .font-medium {
+  body[data-theme="arctic"] .theme-menu-glass .font-medium {
     color: rgb(17, 24, 39) !important; /* gray-900 */
   }
 
-  body[data-theme="macosLight"] .theme-menu-glass .text-xs {
+  body[data-theme="arctic"] .theme-menu-glass .text-xs {
     color: rgb(107, 114, 128) !important; /* gray-500 */
   }
 
   /* File format badge for light theme */
-  body[data-theme="macosLight"] .bg-black\/50 {
+  body[data-theme="arctic"] .bg-black\/50 {
     background: rgba(255, 255, 255, 0.85) !important;
     color: rgb(17, 24, 39) !important; /* gray-900 */
     border: 1px solid rgba(0, 0, 0, 0.1);
   }
 
   /* macOS Dark theme text colors */
-  body[data-theme="macosDark"] .text-white {
+  body[data-theme="graphite"] .text-white {
     color: rgb(244, 244, 245) !important; /* zinc-100 */
   }
 }
@@ -200,6 +200,12 @@
   /* Gradient Text */
   .gradient-text {
     @apply bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400;
+    @apply bg-clip-text text-transparent;
+  }
+
+  /* Dark gradient for light theme */
+  body[data-theme="arctic"] .gradient-text {
+    @apply bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600;
     @apply bg-clip-text text-transparent;
   }
 

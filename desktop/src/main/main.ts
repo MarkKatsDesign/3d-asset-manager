@@ -15,6 +15,11 @@ let thumbnailService: ThumbnailService;
 const isDev = process.env.NODE_ENV === "development";
 
 function createWindow() {
+  // Icon path - works for both dev and production
+  const iconPath = isDev
+    ? path.join(__dirname, "../../resources/icon.png")
+    : path.join(process.resourcesPath, "icon.png");
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -26,7 +31,7 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: false,
     },
-    icon: path.join(__dirname, "../../resources/icon.png"),
+    icon: iconPath,
     title: "Forma",
   });
 
