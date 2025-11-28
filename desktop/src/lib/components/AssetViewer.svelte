@@ -763,6 +763,14 @@
       // Apply to scene
       customHDRI = envMap;
       scene.environment = envMap;
+
+      // Auto-adjust intensity for HDR/EXR files (they're typically much brighter)
+      // Set to 0.4 for better default appearance
+      if (fileName.endsWith('.hdr') || fileName.endsWith('.exr')) {
+        environmentIntensity = 0.4;
+        console.log('Auto-adjusted intensity to 0.4 for HDR/EXR file');
+      }
+
       updateEnvironmentIntensity();
 
       // Don't dispose original texture - we need it for rotation
@@ -1458,17 +1466,28 @@
                 <div class="space-y-2">
                   <div class="flex items-center justify-between">
                     <label for="intensity" class="text-sm {isDarkCard ? 'text-white' : 'text-white/80'}">Intensity</label>
-                    <span class="text-xs {isDarkCard ? 'text-white' : 'text-white/60'}">{environmentIntensity.toFixed(1)}</span>
+                    <input
+                      type="number"
+                      bind:value={environmentIntensity}
+                      min="0"
+                      max="5"
+                      step="0.01"
+                      class="w-16 px-2 py-1 text-xs text-right rounded bg-white/10 border border-white/20 focus:outline-none focus:border-indigo-400 {isDarkCard ? 'text-white bg-black/20' : 'text-white'}"
+                    />
                   </div>
                   <input
                     id="intensity"
                     type="range"
                     min="0"
-                    max="2"
-                    step="0.1"
+                    max="3"
+                    step="0.01"
                     bind:value={environmentIntensity}
                     class="w-full h-2 rounded-lg appearance-none cursor-pointer slider {isDarkCard ? 'slider-dark bg-gray-400' : 'bg-white/20'}"
                   />
+                  <div class="flex justify-between text-xs {isDarkCard ? 'text-white/70' : 'text-white/50'}">
+                    <span>0</span>
+                    <span>3.0</span>
+                  </div>
                 </div>
 
                 <!-- HDRI Rotation Slider -->
