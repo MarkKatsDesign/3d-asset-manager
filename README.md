@@ -38,14 +38,29 @@ Instead of uploading files to the cloud or opening each model in heavy 3D softwa
 
 ### Advanced Features
 - **Screenshot Export** - Capture 3D viewport at multiple resolutions (1080p, 2K, 4K)
-- **Environment Mapping** - HDRI support for realistic lighting
-- **Theme System** - Light/dark themes with customizable backgrounds
+- **Advanced HDRI System**
+  - Upload custom HDRI environments (.hdr, .exr, .jpg, .png)
+  - 360° HDRI rotation for perfect lighting angles
+  - Granular intensity control (0.01 precision, 0-3.0 range with number input)
+  - Auto-adjusts intensity for HDR/EXR files (default 0.4 vs 1.0 for standard)
+  - Show HDRI as visible background or lighting-only
+- **Camera & Animation**
+  - Auto-rotation with adjustable speed (0.05-2.0°/frame)
+  - Orbit controls with damping
+  - Smart camera positioning based on model bounds
+- **Environment Controls**
+  - Transparent background for clean screenshots
+  - Custom background colors with presets
+  - Grid helper toggle
+  - Dynamic card styling (adapts to light/dark backgrounds)
 - **File Explorer Integration** - "Show in Explorer" to quickly locate files
 - **Material Support** - Full PBR material rendering with textures
 - **Geometry-Only Formats** - Special handling for formats without textures (OBJ, STL)
+- **Technical Details** - View polygon count, vertices, meshes, materials, and texture stats
 
 ## Supported Formats
 
+### 3D Model Formats
 | Format | Extension | Type | Textures |
 |--------|-----------|------|----------|
 | **GLB** | `.glb` | Binary GLTF | ✅ Full support |
@@ -53,6 +68,13 @@ Instead of uploading files to the cloud or opening each model in heavy 3D softwa
 | **OBJ** | `.obj` | Wavefront | ⚠️ Geometry only |
 | **FBX** | `.fbx` | Autodesk | ✅ Full support |
 | **STL** | `.stl` | Stereolithography | ⚠️ Geometry only |
+
+### Environment/HDRI Formats
+| Format | Extension | Type | Notes |
+|--------|-----------|------|-------|
+| **HDR** | `.hdr` | RGBE High Dynamic Range | ✅ Full support with rotation |
+| **EXR** | `.exr` | OpenEXR | ✅ Full support with rotation |
+| **JPG/PNG** | `.jpg`, `.png` | Standard Images | ✅ Can be used as environment maps |
 
 ## Installation
 
