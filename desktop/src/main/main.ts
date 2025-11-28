@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, shell, protocol } from "electron";
 import * as path from "path";
 import { DatabaseService } from "./services/database.js";
 import { FileWatcherService } from "./services/fileWatcher.js";
@@ -13,6 +13,19 @@ let fileWatcherService: FileWatcherService;
 let thumbnailService: ThumbnailService;
 
 const isDev = process.env.NODE_ENV === "development";
+
+// Register custom protocol scheme as privileged before app is ready
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'local-file',
+    privileges: {
+      secure: true,
+      supportFetchAPI: true,
+      bypassCSP: true,
+      stream: true
+    }
+  }
+]);
 
 function createWindow() {
   // Icon path - works for both dev and production
@@ -270,8 +283,48 @@ ipcMain.handle("file:showInExplorer", async (_event, id: number) => {
   return false;
 });
 
+// Select background file
+ipcMain.handle("background:selectFile", async () => {
+  const result = await dialog.showOpenDialog(mainWindow!, {
+    properties: ["openFile"],
+    filters: [
+      {
+        name: "Images and Videos",
+        extensions: ["jpg", "jpeg", "png", "webp", "gif", "mp4", "webm", "mov"],
+      },
+      { name: "Images", extensions: ["jpg", "jpeg", "png", "webp", "gif"] },
+      { name: "Videos", extensions: ["mp4", "webm", "mov"] },
+      { name: "All Files", extensions: ["*"] },
+    ],
+  });
+
+  if (!result.canceled && result.filePaths.length > 0) {
+    const filePath = result.filePaths[0];
+    // Convert to custom protocol URL
+    const customUrl = `local-file://${encodeURIComponent(filePath)}`;
+    return {
+      success: true,
+      cancelled: false,
+      filePath: customUrl,
+    };
+  }
+  return { success: true, cancelled: true, filePath: null };
+});
+
 // App lifecycle
 app.whenReady().then(async () => {
+  // Register the protocol handler
+  protocol.registerFileProtocol('local-file', (request, callback) => {
+    const url = request.url.replace('local-file://', '');
+    const decodedPath = decodeURIComponent(url);
+    try {
+      return callback(decodedPath);
+    } catch (error) {
+      console.error('Error loading local file:', error);
+      return callback({ error: -2 } as any);
+    }
+  });
+
   await initializeServices();
   createWindow();
 

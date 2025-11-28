@@ -34,6 +34,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // File system operations
   showInExplorer: (id: number) => ipcRenderer.invoke('file:showInExplorer', id),
 
+  // Background operations
+  selectBackgroundFile: () => ipcRenderer.invoke('background:selectFile'),
+
   // Event listeners for real-time updates
   onAssetAdded: (callback: (asset: any) => void) => {
     const listener = (_event: any, asset: any) => callback(asset);
@@ -73,6 +76,7 @@ export interface ElectronAPI {
   clearAllThumbnails: () => Promise<number>;
   saveScreenshot: (imageData: string, defaultFilename: string) => Promise<{ success: boolean; path: string | null; error?: string }>;
   showInExplorer: (id: number) => Promise<boolean>;
+  selectBackgroundFile: () => Promise<{ success: boolean; cancelled: boolean; filePath: string | null }>;
   onAssetAdded: (callback: (asset: any) => void) => () => void;
   onAssetUpdated: (callback: (asset: any) => void) => () => void;
   onAssetRemoved: (callback: (id: number) => void) => () => void;

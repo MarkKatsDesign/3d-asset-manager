@@ -1,5 +1,8 @@
 <script>
+  import { createEventDispatcher } from 'svelte';
   import { themeStore, themes } from '../stores/themeStore';
+
+  const dispatch = createEventDispatcher();
 
   let showMenu = false;
   let currentTheme;
@@ -17,6 +20,11 @@
 
   function toggleMenu() {
     showMenu = !showMenu;
+  }
+
+  function openBackgroundCustomizer() {
+    showMenu = false;
+    dispatch('customizeBackground');
   }
 
   // Close menu when clicking outside
@@ -78,6 +86,23 @@
           {/if}
         </button>
       {/each}
+
+      <!-- Separator -->
+      <div class="my-2 border-t {isLightTheme ? 'border-gray-200' : 'border-white/10'}"></div>
+
+      <!-- Customize Background Option -->
+      <button
+        on:click={openBackgroundCustomizer}
+        class="w-full px-3 py-2.5 rounded-xl text-left transition-all duration-200 flex items-center gap-3
+          {isLightTheme ? 'hover:bg-gray-100' : 'hover:bg-white/5'}"
+      >
+        <svg class="w-5 h-5 {isLightTheme ? 'text-gray-700' : 'text-white/70'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        <div class="font-medium text-sm {isLightTheme ? 'text-gray-900' : 'text-white'}">
+          Customize Background...
+        </div>
+      </button>
     </div>
   {/if}
 </div>

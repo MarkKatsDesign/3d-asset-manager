@@ -12,6 +12,10 @@
     dispatch('manageFolders');
   }
 
+  function handleCustomizeBackground() {
+    dispatch('customizeBackground');
+  }
+
   async function handleRegenerateThumbnails() {
     if (isRegenerating) return;
 
@@ -65,7 +69,7 @@
         {/if}
 
         <!-- Theme Switcher -->
-        <ThemeSwitcher />
+        <ThemeSwitcher on:customizeBackground={handleCustomizeBackground} />
 
         <!-- Regenerate Thumbnails Button -->
         <button

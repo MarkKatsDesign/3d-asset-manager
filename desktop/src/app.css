@@ -209,6 +209,12 @@
     @apply bg-clip-text text-transparent;
   }
 
+  /* Lighter gradient for Graphite theme */
+  body[data-theme="graphite"] .gradient-text {
+    @apply bg-gradient-to-r from-blue-300 via-cyan-300 to-teal-300;
+    @apply bg-clip-text text-transparent;
+  }
+
   /* Scrollbar Styles */
   .custom-scrollbar::-webkit-scrollbar {
     @apply w-2;
