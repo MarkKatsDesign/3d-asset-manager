@@ -31,7 +31,7 @@
   let originalHDRITexture = null; // Store original texture for screenshot regeneration
   let isLoadingHDRI = false;
   let hdriError = null;
-  let showGrid = true;
+  let showGrid = false;
   let transparentBackground = false;
   let backgroundColor = '#2a2a3e'; // Default studio blue
   let isLightBackground = false; // Tracks if current background is light
@@ -43,11 +43,19 @@
   let showQualityMenu = false;
 
   // Notes section
-  let notesExpanded = false;
   let description = asset.description || '';
   let saveTimeout;
   let savingNotes = false;
   let notesSaved = false;
+
+  // Technical details
+  let showTechnicalDetails = false;
+  let modelStats = null;
+  let technicalDetailsSection;
+
+  // Auto-rotation
+  let autoRotate = false;
+  let rotationSpeed = 0.3; // Degrees per frame
 
   // Preset background colors
   const colorPresets = [
@@ -85,6 +93,88 @@
 
     // Calculate luminance
     return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+  }
+
+  /**
+   * Get file format/extension from asset
+   */
+  function getFileFormat() {
+    if (!asset.filePath) return 'Unknown';
+    const extension = asset.filePath.split('.').pop()?.toUpperCase();
+    return extension || 'Unknown';
+  }
+
+  /**
+   * Format number with comma separators
+   */
+  function formatNumber(num) {
+    return num.toLocaleString('en-US');
+  }
+
+  /**
+   * Calculate technical stats from loaded model
+   */
+  function calculateModelStats(model) {
+    let triangles = 0;
+    let vertices = 0;
+    let meshCount = 0;
+    const materials = new Set();
+    const textures = new Set();
+    let texturedMaterialCount = 0;
+
+    model.traverse((child) => {
+      if (child.isMesh) {
+        meshCount++;
+
+        // Count vertices
+        if (child.geometry?.attributes?.position) {
+          vertices += child.geometry.attributes.position.count;
+        }
+
+        // Count triangles
+        if (child.geometry?.index) {
+          triangles += child.geometry.index.count / 3;
+        } else if (child.geometry?.attributes?.position) {
+          triangles += child.geometry.attributes.position.count / 3;
+        }
+
+        // Count materials and textures
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach(mat => {
+          if (mat) {
+            materials.add(mat.uuid);
+
+            // Check for textures
+            let hasTexture = false;
+            if (mat.map) { textures.add(mat.map.uuid); hasTexture = true; }
+            if (mat.normalMap) { textures.add(mat.normalMap.uuid); hasTexture = true; }
+            if (mat.roughnessMap) { textures.add(mat.roughnessMap.uuid); hasTexture = true; }
+            if (mat.metalnessMap) { textures.add(mat.metalnessMap.uuid); hasTexture = true; }
+            if (mat.aoMap) { textures.add(mat.aoMap.uuid); hasTexture = true; }
+            if (mat.emissiveMap) { textures.add(mat.emissiveMap.uuid); hasTexture = true; }
+
+            if (hasTexture) texturedMaterialCount++;
+          }
+        });
+      }
+    });
+
+    // Calculate texture memory estimate (rough approximation)
+    let estimatedTextureMemory = 0;
+    textures.forEach(() => {
+      // Rough estimate: average 1MB per texture
+      estimatedTextureMemory += 1;
+    });
+
+    return {
+      triangles: Math.floor(triangles),
+      vertices,
+      meshCount,
+      materialCount: materials.size,
+      texturedMaterialCount,
+      textureCount: textures.size,
+      estimatedTextureMemoryMB: estimatedTextureMemory
+    };
   }
 
   onMount(() => {
@@ -149,6 +239,13 @@
     controls.minDistance = 1;
     controls.maxDistance = 50;
     controls.maxPolarAngle = Math.PI;
+
+    // Auto-pause rotation when user interacts with controls
+    controls.addEventListener('start', () => {
+      if (autoRotate) {
+        autoRotate = false;
+      }
+    });
 
     // Lights - Enhanced lighting setup for better model visibility
 
@@ -639,14 +736,25 @@
 
         scene.add(modelGroup);
 
-        // Adjust camera to ensure model is visible
-        const distance = 5;
-        camera.position.set(distance, distance, distance);
+        // Calculate model statistics
+        modelStats = calculateModelStats(model);
+        console.log('Model stats:', modelStats);
+
+        // Adjust camera to optimally frame the model
+        // Calculate optimal distance based on FOV and model size
+        const fov = camera.fov * (Math.PI / 180); // Convert to radians
+        const paddingFactor = 1.3; // Add 30% padding around model
+        const optimalDistance = paddingFactor * (maxDim * scale / 2) / Math.tan(fov / 2);
+
+        // Position camera at optimal distance
+        const normalizedDistance = optimalDistance / Math.sqrt(3); // Normalize for diagonal placement
+        camera.position.set(normalizedDistance, normalizedDistance, normalizedDistance);
         camera.lookAt(0, 0, 0);
         controls.target.set(0, 0, 0);
         controls.update();
 
         console.log('Camera position:', camera.position);
+        console.log('Optimal distance:', optimalDistance);
         console.log('Camera looking at:', controls.target);
 
         loading = false;
@@ -732,6 +840,23 @@
 
   function animate() {
     animationId = requestAnimationFrame(animate);
+
+    // Auto-rotation: orbit camera around the model
+    if (autoRotate && !loading) {
+      const rotationAngle = rotationSpeed * (Math.PI / 180); // Convert to radians
+
+      // Get current camera position
+      const x = camera.position.x;
+      const z = camera.position.z;
+
+      // Rotate around Y-axis (vertical)
+      camera.position.x = x * Math.cos(rotationAngle) - z * Math.sin(rotationAngle);
+      camera.position.z = x * Math.sin(rotationAngle) + z * Math.cos(rotationAngle);
+
+      // Keep camera looking at center
+      camera.lookAt(0, 0, 0);
+    }
+
     controls.update();
     renderer.render(scene, camera);
   }
@@ -819,6 +944,13 @@
       onClose();
     }
   }
+
+  // Auto-scroll to technical details when expanded
+  $: if (showTechnicalDetails && technicalDetailsSection) {
+    setTimeout(() => {
+      technicalDetailsSection?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
+  }
 </script>
 
 <!-- Modal Overlay -->
@@ -834,7 +966,7 @@
   <!-- Modal Content -->
   <!-- svelte-ignore a11y-no-static-element-interactions -->
   <div
-    class="glass-modal w-full max-w-6xl h-[90vh] flex flex-col animate-slide-up"
+    class="glass-modal w-[95vw] h-[95vh] flex flex-col animate-slide-up overflow-hidden"
     on:click|stopPropagation
     on:keydown|stopPropagation
     role="dialog"
@@ -962,6 +1094,17 @@
 
         <!-- Environment Controls and Notes -->
         <div class="absolute bottom-4 right-4 flex flex-col items-end gap-2">
+          <!-- Auto-Rotate Button -->
+          <button
+            on:click={() => autoRotate = !autoRotate}
+            class="p-3 transition-all duration-300 {autoRotate ? 'bg-indigo-500/30 border-indigo-400' : ''} {isLightBackground && !transparentBackground ? 'glass-button-light' : 'glass-button'}"
+            title={autoRotate ? 'Stop auto-rotation' : 'Start auto-rotation'}
+          >
+            <svg class="w-5 h-5 {autoRotate ? 'animate-spin' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation-duration: 3s;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+
           <!-- Notes Button -->
           <button
             on:click={() => showNotes = !showNotes}
@@ -1148,12 +1291,9 @@
 
           <!-- Notes Section (Independent) -->
           {#if showNotes}
-          <div class="w-64 animate-slide-up transition-all duration-300 {isDarkCard ? 'glass-card-light' : 'glass-card'}">
-            <!-- Header - Always visible -->
-            <button
-              on:click={() => notesExpanded = !notesExpanded}
-              class="w-full p-4 flex items-center justify-between transition-colors {isDarkCard ? 'hover:bg-black/10' : 'hover:bg-indigo-500/10'}"
-            >
+          <div class="w-64 p-4 space-y-3 animate-slide-up transition-all duration-300 {isDarkCard ? 'glass-card-light' : 'glass-card'}">
+            <!-- Header -->
+            <div class="flex items-center justify-between">
               <div class="flex items-center space-x-2">
                 <svg class="w-4 h-4 {isDarkCard ? 'text-white' : 'text-white/80'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -1166,29 +1306,19 @@
                 {:else if notesSaved}
                   <span class="text-xs text-green-400">Saved</span>
                 {/if}
-                <svg
-                  class="w-4 h-4 transition-transform {notesExpanded ? 'rotate-180' : ''} {isDarkCard ? 'text-white' : 'text-white/40'}"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
               </div>
-            </button>
+            </div>
 
-            <!-- Expandable Content -->
-            {#if notesExpanded}
-              <div class="px-4 pb-4 space-y-2 animate-slide-up">
-                <textarea
-                  bind:value={description}
-                  on:input={handleNotesInput}
-                  placeholder="Add notes or description for this model..."
-                  class="w-full h-48 px-3 py-2 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all bg-white/90 text-gray-900 placeholder-gray-500 border border-gray-300"
-                ></textarea>
-                <p class="text-xs {isDarkCard ? 'text-white/90' : 'text-white/40'}">Changes save automatically</p>
-              </div>
-            {/if}
+            <!-- Notes Content -->
+            <div class="space-y-2">
+              <textarea
+                bind:value={description}
+                on:input={handleNotesInput}
+                placeholder="Add notes or description for this model..."
+                class="w-full h-48 px-3 py-2 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all bg-white/90 text-gray-900 placeholder-gray-500 border border-gray-300"
+              ></textarea>
+              <p class="text-xs {isDarkCard ? 'text-white/90' : 'text-white/40'}">Changes save automatically</p>
+            </div>
           </div>
           {/if}
         </div>
@@ -1196,34 +1326,107 @@
     </div>
 
     <!-- Footer with metadata -->
-    <div class="p-6 border-t border-white/10">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-          <div class="flex items-center space-x-2">
-            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
-              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
+    <div class="border-t border-white/10 overflow-y-auto flex-shrink-0 max-h-[40vh]">
+      <div class="p-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+              <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <p class="text-sm font-medium">{getFileFormat()} File</p>
+                <p class="text-xs text-white/50">
+                  {(asset.fileSize / 1024 / 1024).toFixed(2)} MB • Added {new Date(asset.createdAt).toLocaleDateString()}
+                </p>
+              </div>
             </div>
-            <div>
-              <p class="text-sm font-medium">Local File</p>
-              <p class="text-xs text-white/50">
-                {(asset.fileSize / 1024 / 1024).toFixed(2)} MB • Added {new Date(asset.createdAt).toLocaleDateString()}
-              </p>
+          </div>
+
+          <div class="flex items-center gap-3">
+            {#if asset.tags && asset.tags.length > 0}
+              <div class="flex flex-wrap gap-2">
+                {#each asset.tags as tag}
+                  <span class="px-3 py-1 bg-white/10 rounded-full text-sm font-medium">
+                    {tag}
+                  </span>
+                {/each}
+              </div>
+            {/if}
+
+            <!-- Technical Details Button -->
+            {#if modelStats}
+              <button
+                on:click={() => showTechnicalDetails = !showTechnicalDetails}
+                class="glass-button px-4 py-2 flex items-center space-x-2 text-sm"
+                title="Technical Details"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>{showTechnicalDetails ? 'Hide' : 'Show'} Details</span>
+                <svg
+                  class="w-4 h-4 transition-transform {showTechnicalDetails ? 'rotate-180' : ''}"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            {/if}
+          </div>
+        </div>
+      </div>
+
+      <!-- Expandable Technical Details -->
+      {#if showTechnicalDetails && modelStats}
+        <div bind:this={technicalDetailsSection} class="px-6 pb-6 animate-slide-down">
+          <div class="glass-card p-5">
+            <h4 class="text-sm font-semibold gradient-text mb-4">Technical Information</h4>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <!-- Geometry Stats -->
+              <div class="space-y-1">
+                <p class="text-xs text-white/50">Triangles</p>
+                <p class="text-lg font-semibold">{formatNumber(modelStats.triangles)}</p>
+              </div>
+              <div class="space-y-1">
+                <p class="text-xs text-white/50">Vertices</p>
+                <p class="text-lg font-semibold">{formatNumber(modelStats.vertices)}</p>
+              </div>
+              <div class="space-y-1">
+                <p class="text-xs text-white/50">Meshes</p>
+                <p class="text-lg font-semibold">{modelStats.meshCount}</p>
+              </div>
+
+              <!-- Material Stats -->
+              <div class="space-y-1">
+                <p class="text-xs text-white/50">Materials</p>
+                <p class="text-lg font-semibold">
+                  {modelStats.materialCount}
+                  {#if modelStats.texturedMaterialCount > 0}
+                    <span class="text-xs text-white/50">({modelStats.texturedMaterialCount} textured)</span>
+                  {/if}
+                </p>
+              </div>
+
+              <!-- Texture Stats -->
+              {#if modelStats.textureCount > 0}
+                <div class="space-y-1">
+                  <p class="text-xs text-white/50">Textures</p>
+                  <p class="text-lg font-semibold">{modelStats.textureCount} maps</p>
+                </div>
+                <div class="space-y-1">
+                  <p class="text-xs text-white/50">Est. Texture Memory</p>
+                  <p class="text-lg font-semibold">~{modelStats.estimatedTextureMemoryMB} MB</p>
+                </div>
+              {/if}
             </div>
           </div>
         </div>
-
-        {#if asset.tags && asset.tags.length > 0}
-          <div class="flex flex-wrap gap-2">
-            {#each asset.tags as tag}
-              <span class="px-3 py-1 bg-white/10 rounded-full text-sm font-medium">
-                {tag}
-              </span>
-            {/each}
-          </div>
-        {/if}
-      </div>
+      {/if}
     </div>
   </div>
 </div>
