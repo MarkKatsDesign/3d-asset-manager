@@ -57,7 +57,8 @@
 
   // Auto-rotation
   let autoRotate = false;
-  let rotationSpeed = 0.3; // Degrees per frame
+  let rotationSpeed = 0.3; // Degrees per frame (range: 0.05 to 2.0)
+  let showRotationControls = false;
 
   // Preset background colors
   const colorPresets = [
@@ -1114,7 +1115,7 @@
         <div class="absolute bottom-4 right-4 flex flex-col items-end gap-2">
           <!-- Auto-Rotate Button -->
           <button
-            on:click={() => autoRotate = !autoRotate}
+            on:click={() => { autoRotate = !autoRotate; showRotationControls = !showRotationControls; }}
             class="p-3 transition-all duration-300 {autoRotate ? 'bg-indigo-500/30 border-indigo-400' : ''} {isLightBackground && !transparentBackground ? 'glass-button-light' : 'glass-button'}"
             title={autoRotate ? 'Stop auto-rotation' : 'Start auto-rotation'}
           >
@@ -1122,6 +1123,38 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </button>
+
+          <!-- Rotation Controls Panel -->
+          {#if showRotationControls && autoRotate}
+            <div class="p-4 space-y-3 w-64 animate-slide-up transition-all duration-300 {isDarkCard ? 'glass-card-light' : 'glass-card'}">
+              <h3 class="font-semibold text-sm gradient-text">Rotation Speed</h3>
+
+              <!-- Speed Slider -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <label for="rotation-speed" class="text-sm {isDarkCard ? 'text-white' : 'text-white/80'}">Speed</label>
+                  <span class="text-xs {isDarkCard ? 'text-white' : 'text-white/60'}">{rotationSpeed.toFixed(2)}°/frame</span>
+                </div>
+                <input
+                  id="rotation-speed"
+                  type="range"
+                  min="0.05"
+                  max="2.0"
+                  step="0.05"
+                  bind:value={rotationSpeed}
+                  class="w-full h-2 rounded-lg appearance-none cursor-pointer slider {isDarkCard ? 'slider-dark bg-gray-400' : 'bg-white/20'}"
+                />
+                <div class="flex justify-between text-xs {isDarkCard ? 'text-white/70' : 'text-white/50'}">
+                  <span>Slow</span>
+                  <span>Fast</span>
+                </div>
+              </div>
+
+              <div class="pt-2 border-t {isDarkCard ? 'border-white/20' : 'border-white/10'}">
+                <p class="text-xs {isDarkCard ? 'text-white/90' : 'text-white/50'}">Adjust rotation speed for the perfect showcase</p>
+              </div>
+            </div>
+          {/if}
 
           <!-- Notes Button -->
           <button
