@@ -29,6 +29,8 @@
   let isLoadingHDRI = false;
   let hdriError = null;
   let showGrid = true;
+  let hdriRotation = 0; // Rotation in degrees (0-360)
+  let environmentTexture = null; // Store the texture for rotation
 
   onMount(() => {
     initScene();
@@ -173,6 +175,12 @@
     texture.needsUpdate = true;
     texture.mapping = THREE.EquirectangularReflectionMapping;
 
+    // Store texture for rotation
+    environmentTexture = texture;
+
+    // Apply rotation
+    applyEnvironmentRotation();
+
     // Generate PMREM for the environment
     const envMap = pmremGenerator.fromEquirectangular(texture).texture;
 
@@ -181,8 +189,15 @@
 
     // Set initial intensity
     updateEnvironmentIntensity();
+  }
 
-    texture.dispose();
+  function applyEnvironmentRotation() {
+    if (environmentTexture) {
+      // Convert rotation from degrees to a 0-1 offset value
+      // Offset.x shifts the texture horizontally, rotating the environment
+      environmentTexture.offset.x = hdriRotation / 360;
+      environmentTexture.needsUpdate = true;
+    }
   }
 
   function updateEnvironmentIntensity() {
@@ -265,6 +280,12 @@
       // Set texture mapping
       texture.mapping = THREE.EquirectangularReflectionMapping;
 
+      // Store texture for rotation
+      environmentTexture = texture;
+
+      // Apply rotation
+      applyEnvironmentRotation();
+
       // Generate PMREM
       const envMap = pmremGenerator.fromEquirectangular(texture).texture;
 
@@ -273,8 +294,7 @@
       scene.environment = envMap;
       updateEnvironmentIntensity();
 
-      // Cleanup
-      texture.dispose();
+      // Don't dispose texture - we need it for rotation
       URL.revokeObjectURL(fileURL);
 
       isLoadingHDRI = false;

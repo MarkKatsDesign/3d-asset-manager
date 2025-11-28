@@ -38,6 +38,8 @@
   let backgroundColor = '#2a2a3e'; // Default studio blue
   let isLightBackground = false; // Tracks if current background is light
   let isDarkCard = false; // Tracks if card should use dark styling (for light backgrounds)
+  let hdriRotation = 0; // HDRI rotation in degrees (0-360)
+  let environmentTexture = null; // Store the base texture for rotation
 
   // Screenshot settings
   let screenshotQuality = '1080p';
@@ -496,6 +498,14 @@
     const texture = new THREE.DataTexture(data, width, height);
     texture.needsUpdate = true;
     texture.mapping = THREE.EquirectangularReflectionMapping;
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+
+    // Store texture for rotation
+    environmentTexture = texture;
+
+    // Apply rotation
+    applyEnvironmentRotation();
 
     // Generate PMREM for the environment
     const envMap = pmremGenerator.fromEquirectangular(texture).texture;
@@ -505,8 +515,143 @@
 
     // Set initial intensity
     updateEnvironmentIntensity();
+  }
 
-    texture.dispose();
+  function rotateDataTexturePixels(sourceTexture, rotationDegrees) {
+    // For DataTextures (HDR/EXR), manually shift the pixel data
+    const image = sourceTexture.image;
+    if (!image || !image.data) return sourceTexture;
+
+    const width = image.width;
+    const height = image.height;
+    const data = image.data;
+    const bytesPerPixel = data.length / (width * height);
+
+    // Calculate horizontal pixel shift for rotation
+    const shiftPixels = Math.floor((rotationDegrees / 360) * width);
+    if (shiftPixels === 0) return sourceTexture;
+
+    // Create new data array for rotated texture
+    const rotatedData = new data.constructor(data.length);
+
+    // Copy pixels with horizontal shift (wrapping around)
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        // Calculate source x position (wrap around)
+        const srcX = (x + shiftPixels) % width;
+        const srcIndex = (y * width + srcX) * bytesPerPixel;
+        const dstIndex = (y * width + x) * bytesPerPixel;
+
+        // Copy all bytes for this pixel
+        for (let b = 0; b < bytesPerPixel; b++) {
+          rotatedData[dstIndex + b] = data[srcIndex + b];
+        }
+      }
+    }
+
+    // Create new DataTexture with rotated data
+    const rotatedTexture = new THREE.DataTexture(
+      rotatedData,
+      width,
+      height,
+      sourceTexture.format,
+      sourceTexture.type
+    );
+    rotatedTexture.mapping = THREE.EquirectangularReflectionMapping;
+    rotatedTexture.colorSpace = sourceTexture.colorSpace;
+    rotatedTexture.needsUpdate = true;
+
+    return rotatedTexture;
+  }
+
+  function rotateImageTexture(sourceTexture, rotationDegrees) {
+    // For standard image textures (JPG/PNG)
+    const image = sourceTexture.image;
+
+    // Check if image is a valid drawable element
+    if (!(image instanceof HTMLImageElement ||
+          image instanceof HTMLCanvasElement ||
+          image instanceof ImageBitmap)) {
+      console.log('Texture image type not supported for canvas rotation:', image?.constructor?.name);
+      return sourceTexture;
+    }
+
+    // Create a canvas to manually rotate the texture
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = image.width;
+    canvas.height = image.height;
+
+    // Calculate horizontal pixel shift for rotation
+    const shiftPixels = Math.floor((rotationDegrees / 360) * canvas.width);
+
+    // Draw the texture in two parts to create seamless rotation
+    // Part 1: Draw the right portion on the left
+    ctx.drawImage(
+      image,
+      canvas.width - shiftPixels, 0, shiftPixels, canvas.height,  // source
+      0, 0, shiftPixels, canvas.height  // destination
+    );
+
+    // Part 2: Draw the left portion on the right
+    ctx.drawImage(
+      image,
+      0, 0, canvas.width - shiftPixels, canvas.height,  // source
+      shiftPixels, 0, canvas.width - shiftPixels, canvas.height  // destination
+    );
+
+    // Create new texture from rotated canvas
+    const rotatedTexture = new THREE.CanvasTexture(canvas);
+    rotatedTexture.mapping = THREE.EquirectangularReflectionMapping;
+    rotatedTexture.colorSpace = sourceTexture.colorSpace || THREE.SRGBColorSpace;
+
+    return rotatedTexture;
+  }
+
+  function rotateEquirectangularTexture(sourceTexture, rotationDegrees) {
+    // Check texture type and use appropriate rotation method
+    if (sourceTexture.isDataTexture || !sourceTexture.image?.width) {
+      console.log('Rotating DataTexture (HDR/EXR)...');
+      return rotateDataTexturePixels(sourceTexture, rotationDegrees);
+    } else {
+      console.log('Rotating image texture (JPG/PNG)...');
+      return rotateImageTexture(sourceTexture, rotationDegrees);
+    }
+  }
+
+  function applyEnvironmentRotation() {
+    if (!environmentTexture || !scene || !pmremGenerator) return;
+
+    console.log('Applying HDRI rotation:', hdriRotation, 'degrees');
+
+    // Create rotated version of the texture
+    const rotatedTexture = rotateEquirectangularTexture(environmentTexture, hdriRotation);
+
+    // If rotation wasn't possible, skip regenerating
+    if (rotatedTexture === environmentTexture && hdriRotation !== 0) {
+      console.log('Skipping PMREM regeneration - rotation not supported for this texture type');
+      return;
+    }
+
+    // Generate PMREM from rotated texture
+    const envMap = pmremGenerator.fromEquirectangular(rotatedTexture).texture;
+
+    // Update scene environment
+    scene.environment = envMap;
+    if (customHDRI) {
+      customHDRI = envMap;
+    }
+
+    // Update background if HDRI background is shown
+    if (showHDRIBackground) {
+      scene.background = envMap;
+    }
+
+    // Clean up the temporary rotated texture if it's different from source
+    if (rotatedTexture !== environmentTexture) {
+      rotatedTexture.dispose();
+    }
   }
 
   function updateEnvironmentIntensity() {
@@ -596,11 +741,21 @@
         throw new Error('Unsupported file format. Please use .hdr, .exr, .jpg, or .png files.');
       }
 
-      // Set texture mapping
+      // Set texture mapping and wrapping for rotation
       texture.mapping = THREE.EquirectangularReflectionMapping;
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
 
       // Store the original texture for screenshot regeneration
       originalHDRITexture = texture.clone();
+      originalHDRITexture.wrapS = THREE.RepeatWrapping;
+      originalHDRITexture.wrapT = THREE.ClampToEdgeWrapping;
+
+      // Store texture for rotation
+      environmentTexture = texture;
+
+      // Apply rotation
+      applyEnvironmentRotation();
 
       // Generate PMREM
       const envMap = pmremGenerator.fromEquirectangular(texture).texture;
@@ -610,8 +765,7 @@
       scene.environment = envMap;
       updateEnvironmentIntensity();
 
-      // Cleanup original (we have a clone)
-      texture.dispose();
+      // Don't dispose original texture - we need it for rotation
       URL.revokeObjectURL(fileURL);
 
       isLoadingHDRI = false;
@@ -674,6 +828,17 @@
     // Use dark card when: light solid background OR HDRI background is shown
     isDarkCard = (isLightBackground && !transparentBackground) || showHDRIBackground;
     console.log('isDarkCard:', isDarkCard, 'isLight:', isLightBackground, 'transparent:', transparentBackground, 'hdriBackground:', showHDRIBackground);
+  }
+
+  // Update environment rotation
+  $: if (scene && hdriRotation !== undefined) {
+    console.log('Updating environment rotation:', hdriRotation);
+    applyEnvironmentRotation();
+
+    // Force a render to show the change
+    if (renderer) {
+      renderer.render(scene, camera);
+    }
   }
 
   async function loadModel() {
@@ -1302,6 +1467,23 @@
                     max="2"
                     step="0.1"
                     bind:value={environmentIntensity}
+                    class="w-full h-2 rounded-lg appearance-none cursor-pointer slider {isDarkCard ? 'slider-dark bg-gray-400' : 'bg-white/20'}"
+                  />
+                </div>
+
+                <!-- HDRI Rotation Slider -->
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <label for="hdri-rotation" class="text-sm {isDarkCard ? 'text-white' : 'text-white/80'}">HDRI Rotation</label>
+                    <span class="text-xs {isDarkCard ? 'text-white' : 'text-white/60'}">{hdriRotation.toFixed(0)}°</span>
+                  </div>
+                  <input
+                    id="hdri-rotation"
+                    type="range"
+                    min="0"
+                    max="360"
+                    step="1"
+                    bind:value={hdriRotation}
                     class="w-full h-2 rounded-lg appearance-none cursor-pointer slider {isDarkCard ? 'slider-dark bg-gray-400' : 'bg-white/20'}"
                   />
                 </div>
