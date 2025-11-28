@@ -26,6 +26,7 @@
   let useEnvironment = true;
   let environmentIntensity = 1.0;
   let showControls = false;
+  let showNotes = false;
   let customHDRI = null;
   let originalHDRITexture = null; // Store original texture for screenshot regeneration
   let isLoadingHDRI = false;
@@ -844,9 +845,6 @@
     <div class="flex items-center justify-between p-6 border-b border-white/10">
       <div class="flex-1">
         <h2 id="viewer-title" class="text-2xl font-bold gradient-text">{asset.name}</h2>
-        {#if asset.description}
-          <p class="text-white/60 mt-1">{asset.description}</p>
-        {/if}
       </div>
       <div class="flex items-center space-x-2">
         <!-- Screenshot Button with Quality Menu -->
@@ -962,11 +960,23 @@
           <p>Scroll to zoom</p>
         </div>
 
-        <!-- Environment Controls -->
-        <div class="absolute bottom-4 right-4">
+        <!-- Environment Controls and Notes -->
+        <div class="absolute bottom-4 right-4 flex flex-col items-end gap-2">
+          <!-- Notes Button -->
+          <button
+            on:click={() => showNotes = !showNotes}
+            class="p-3 transition-all duration-300 {isLightBackground && !transparentBackground ? 'glass-button-light' : 'glass-button'}"
+            title="Notes"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
+
+          <!-- Environment Button -->
           <button
             on:click={() => showControls = !showControls}
-            class="p-3 mb-2 transition-all duration-300 {isLightBackground && !transparentBackground ? 'glass-button-light' : 'glass-button'}"
+            class="p-3 transition-all duration-300 {isLightBackground && !transparentBackground ? 'glass-button-light' : 'glass-button'}"
             title="Environment settings"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1134,7 +1144,10 @@
                 <p class="text-xs {isDarkCard ? 'text-white/90' : 'text-white/50'}">Environment map provides realistic lighting and reflections</p>
               </div>
             </div>
-          <!-- Notes Section -->
+          {/if}
+
+          <!-- Notes Section (Independent) -->
+          {#if showNotes}
           <div class="w-64 animate-slide-up transition-all duration-300 {isDarkCard ? 'glass-card-light' : 'glass-card'}">
             <!-- Header - Always visible -->
             <button
@@ -1171,7 +1184,7 @@
                   bind:value={description}
                   on:input={handleNotesInput}
                   placeholder="Add notes or description for this model..."
-                  class="w-full h-32 px-3 py-2 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all bg-white/90 text-gray-900 placeholder-gray-500 border border-gray-300"
+                  class="w-full h-48 px-3 py-2 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all bg-white/90 text-gray-900 placeholder-gray-500 border border-gray-300"
                 ></textarea>
                 <p class="text-xs {isDarkCard ? 'text-white/90' : 'text-white/40'}">Changes save automatically</p>
               </div>

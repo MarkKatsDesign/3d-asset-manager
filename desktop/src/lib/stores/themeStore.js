@@ -18,7 +18,7 @@ export const themes = {
 
       // Text
       textPrimary: "text-white",
-      textSecondary: "text-white/70",
+      textSecondary: "text-white/65",
       textMuted: "text-white/40",
 
       // Accent colors
@@ -54,8 +54,8 @@ export const themes = {
 
       // Text
       textPrimary: "text-gray-900",
-      textSecondary: "text-gray-600",
-      textMuted: "text-gray-400",
+      textSecondary: "text-gray-500",
+      textMuted: "text-gray-500",
 
       // Accent colors
       accentPrimary: "bg-blue-500",
@@ -89,7 +89,7 @@ export const themes = {
 
       // Text
       textPrimary: "text-zinc-100",
-      textSecondary: "text-zinc-400",
+      textSecondary: "text-zinc-300",
       textMuted: "text-zinc-400",
 
       // Accent colors

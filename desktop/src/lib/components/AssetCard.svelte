@@ -114,13 +114,6 @@
       {asset.name}
     </h3>
 
-    <!-- Description -->
-    {#if asset.description}
-      <p class="text-sm text-white/70 line-clamp-2">
-        {asset.description}
-      </p>
-    {/if}
-
     <!-- Tags -->
     {#if asset.tags && asset.tags.length > 0}
       <div class="flex flex-wrap gap-2">

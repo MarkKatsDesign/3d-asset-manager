@@ -7,6 +7,22 @@
   let selectedFile = null;
   let previewMode = false;
 
+  // Extract filename from path and decode URL encoding
+  function getDisplayFilename(filePath) {
+    if (!filePath) return '';
+    try {
+      // Decode URI component to convert %3A to : and %5C to \
+      const decoded = decodeURIComponent(filePath);
+      // Remove the protocol prefix
+      const withoutProtocol = decoded.replace('local-file://', '');
+      // Extract just the filename (everything after the last slash or backslash)
+      const filename = withoutProtocol.split(/[/\\]/).pop();
+      return filename || withoutProtocol;
+    } catch (error) {
+      return filePath;
+    }
+  }
+
   // Handle file selection via Electron dialog
   async function handleFileSelect() {
     try {
@@ -153,9 +169,9 @@
               </button>
 
               {#if selectedFile || currentSettings.source}
-                <div class="mt-2 p-2 bg-white/5 rounded-lg">
+                <div class="mt-2 p-2 bg-white/5 rounded-lg" title={selectedFile || currentSettings.source}>
                   <p class="text-xs text-white/80 truncate font-mono">
-                    {selectedFile || currentSettings.source}
+                    📄 {getDisplayFilename(selectedFile || currentSettings.source)}
                   </p>
                 </div>
               {/if}
@@ -395,5 +411,177 @@
     height: 18px;
     cursor: pointer;
     accent-color: #6366f1;
+  }
+
+  /* Arctic Theme (Light) Overrides */
+  :global(body[data-theme="arctic"]) .modal-overlay {
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  :global(body[data-theme="arctic"]) .modal-content {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 250, 250, 0.98) 100%);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  }
+
+  :global(body[data-theme="arctic"]) .modal-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  :global(body[data-theme="arctic"]) .close-button {
+    color: rgba(0, 0, 0, 0.6);
+  }
+
+  :global(body[data-theme="arctic"]) .close-button:hover {
+    color: rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  :global(body[data-theme="arctic"]) .option-card {
+    background: rgba(0, 0, 0, 0.03);
+    border: 2px solid rgba(0, 0, 0, 0.1);
+  }
+
+  :global(body[data-theme="arctic"]) .option-card:hover {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.15);
+  }
+
+  :global(body[data-theme="arctic"]) .option-card.active {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.5);
+  }
+
+  :global(body[data-theme="arctic"]) .radio-button {
+    border-color: rgba(0, 0, 0, 0.4);
+  }
+
+  :global(body[data-theme="arctic"]) .radio-dot {
+    background: #3b82f6;
+  }
+
+  :global(body[data-theme="arctic"]) .advanced-section {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  :global(body[data-theme="arctic"]) .slider {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+  }
+
+  :global(body[data-theme="arctic"]) .slider::-webkit-slider-thumb {
+    background: #3b82f6;
+  }
+
+  :global(body[data-theme="arctic"]) .slider::-webkit-slider-thumb:hover {
+    background: #2563eb;
+  }
+
+  :global(body[data-theme="arctic"]) .slider::-moz-range-thumb {
+    background: #3b82f6;
+  }
+
+  :global(body[data-theme="arctic"]) .slider::-moz-range-thumb:hover {
+    background: #2563eb;
+  }
+
+  :global(body[data-theme="arctic"]) .checkbox {
+    accent-color: #3b82f6;
+  }
+
+  /* Arctic Theme Text Color Overrides */
+  :global(body[data-theme="arctic"]) .modal-body p,
+  :global(body[data-theme="arctic"]) .modal-body h3,
+  :global(body[data-theme="arctic"]) .modal-body label,
+  :global(body[data-theme="arctic"]) .modal-body span {
+    color: rgba(0, 0, 0, 0.9) !important;
+  }
+
+  /* Button Base Styles (All Themes) */
+  :global(.btn-primary),
+  :global(.btn-secondary) {
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.75rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Arctic Theme Button Overrides */
+  :global(body[data-theme="arctic"]) :global(.btn-secondary) {
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    color: rgba(0, 0, 0, 0.9);
+  }
+
+  :global(body[data-theme="arctic"]) :global(.btn-secondary:hover) {
+    background: rgba(0, 0, 0, 0.1);
+    border-color: rgba(0, 0, 0, 0.25);
+  }
+
+  :global(body[data-theme="arctic"]) :global(.btn-primary) {
+    background: #3b82f6;
+    border: 1px solid #2563eb;
+    color: white;
+  }
+
+  :global(body[data-theme="arctic"]) :global(.btn-primary:hover) {
+    background: #2563eb;
+    border-color: #1d4ed8;
+  }
+
+  /* Neon Theme Button Overrides */
+  :global(body[data-theme="neon"]) :global(.btn-secondary) {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+  }
+
+  :global(body[data-theme="neon"]) :global(.btn-secondary:hover) {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  :global(body[data-theme="neon"]) :global(.btn-primary) {
+    background: #6366f1;
+    border: 1px solid #818cf8;
+    color: white;
+  }
+
+  :global(body[data-theme="neon"]) :global(.btn-primary:hover) {
+    background: #4f46e5;
+    border-color: #6366f1;
+  }
+
+  /* Graphite Theme Button Overrides */
+  :global(body[data-theme="graphite"]) :global(.btn-secondary) {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.95);
+  }
+
+  :global(body[data-theme="graphite"]) :global(.btn-secondary:hover) {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+
+  :global(body[data-theme="graphite"]) :global(.btn-primary) {
+    background: #3b82f6;
+    border: 1px solid #60a5fa;
+    color: white;
+  }
+
+  :global(body[data-theme="graphite"]) :global(.btn-primary:hover) {
+    background: #2563eb;
+    border-color: #3b82f6;
+  }
+
+  /* Arctic Theme - File display background */
+  :global(body[data-theme="arctic"]) .modal-body > div > div > div > div > div {
+    background: rgba(0, 0, 0, 0.05) !important;
   }
 </style>

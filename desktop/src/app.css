@@ -203,15 +203,15 @@
     @apply bg-clip-text text-transparent;
   }
 
-  /* Dark gradient for light theme */
+  /* Arctic theme - darker gradient for light background */
   body[data-theme="arctic"] .gradient-text {
-    @apply bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600;
+    @apply bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-700;
     @apply bg-clip-text text-transparent;
   }
 
-  /* Lighter gradient for Graphite theme */
+  /* Graphite theme - lighter gradient for dark background (consistent with Neon) */
   body[data-theme="graphite"] .gradient-text {
-    @apply bg-gradient-to-r from-blue-300 via-cyan-300 to-teal-300;
+    @apply bg-gradient-to-r from-indigo-300 via-purple-300 to-pink-300;
     @apply bg-clip-text text-transparent;
   }
 
