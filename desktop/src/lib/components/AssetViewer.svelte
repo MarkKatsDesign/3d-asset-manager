@@ -370,16 +370,23 @@
       console.log('Screenshot renderer tone mapping exposure:', screenshotRenderer.toneMappingExposure);
       console.log('Screenshot renderer tone mapping type:', screenshotRenderer.toneMapping);
 
+      // Store original background and environment to restore after screenshot
+      const originalBackground = scene.background;
+      const originalEnvironment = scene.environment;
+
       // Set background to match current scene
       if (transparentBackground) {
         screenshotRenderer.setClearColor(0x000000, 0);
+        scene.background = null;
+      } else if (showHDRIBackground && scene.environment) {
+        // Use HDRI as background for screenshot
+        screenshotRenderer.setClearColor(0x000000, 0);
+        // scene.background will be set to environment after regeneration
       } else {
         const bgColor = new THREE.Color(backgroundColor);
         screenshotRenderer.setClearColor(bgColor, 1);
+        scene.background = bgColor;
       }
-
-      // Store original environment to restore after screenshot
-      const originalEnvironment = scene.environment;
 
       // CRITICAL: Create a new PMREM generator for the screenshot renderer
       // The environment map must be regenerated for this renderer's WebGL context
@@ -392,11 +399,20 @@
         const screenshotEnvMap = screenshotPMREM.fromEquirectangular(originalHDRITexture).texture;
         scene.environment = screenshotEnvMap;
 
+        // If HDRI background is enabled, set it as the scene background too
+        if (showHDRIBackground) {
+          scene.background = screenshotEnvMap;
+        }
+
         screenshotPMREM.dispose();
         console.log('Custom HDRI environment map regenerated for screenshot');
       } else if (useEnvironment && !originalHDRITexture) {
         console.log('Using default environment (no custom HDRI to regenerate)');
         // The default environment should already work since it's procedural
+        // If HDRI background is enabled, set the default environment as background
+        if (showHDRIBackground && scene.environment) {
+          scene.background = scene.environment;
+        }
       }
 
       // Clone camera to preserve aspect ratio
@@ -418,8 +434,9 @@
       screenshotRenderer.render(scene, screenshotCamera);
       console.log('Screenshot rendered');
 
-      // Restore original environment for the main viewer
+      // Restore original environment and background for the main viewer
       scene.environment = originalEnvironment;
+      scene.background = originalBackground;
 
       // Get image data
       const imageData = screenshotCanvas.toDataURL('image/png');
