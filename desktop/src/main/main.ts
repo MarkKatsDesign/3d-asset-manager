@@ -70,7 +70,9 @@ async function initializeServices() {
 
   dbService = new DatabaseService(dbPath);
   thumbnailService = new ThumbnailService(dbService);
-  fileWatcherService = new FileWatcherService(dbService, thumbnailService);
+
+  // Pass mainWindow to fileWatcherService for progress updates
+  fileWatcherService = new FileWatcherService(dbService, thumbnailService, mainWindow!);
 
   // Load watched folders from database and start watching
   const watchedFolders = dbService.getWatchedFolders();
@@ -174,6 +176,12 @@ ipcMain.handle("folders:rescan", async (_event, id: number) => {
     return true;
   }
   return false;
+});
+
+// Cancel folder scan
+ipcMain.handle("folders:cancelScan", async (_event, folderPath: string) => {
+  fileWatcherService.cancelScan(folderPath);
+  return true;
 });
 
 // Get file path for asset

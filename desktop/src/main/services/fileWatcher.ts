@@ -1,20 +1,45 @@
 import chokidar, { FSWatcher } from 'chokidar';
 import * as path from 'path';
 import * as fs from 'fs';
+import { promises as fsPromises } from 'fs';
 import { DatabaseService } from './database.js';
 import { ThumbnailService } from './thumbnail.js';
+import { BrowserWindow } from 'electron';
+
+interface ScanProgress {
+  folderId: number;
+  folderPath: string;
+  totalFiles: number;
+  processedFiles: number;
+  currentFile: string;
+  foundModels: number;
+}
 
 export class FileWatcherService {
   private watchers: Map<string, FSWatcher> = new Map();
   private dbService: DatabaseService;
   private thumbnailService: ThumbnailService;
+  private mainWindow: BrowserWindow | null = null;
+  private activeScanControllers: Map<string, AbortController> = new Map();
 
   // Supported 3D file extensions
   private supportedExtensions = ['.glb', '.obj', '.fbx', '.stl'];
 
-  constructor(dbService: DatabaseService, thumbnailService: ThumbnailService) {
+  // Performance tuning
+  private readonly MAX_CONCURRENT_SCANS = 5; // Max parallel folder scans
+  private readonly BATCH_SIZE = 50; // Database insert batch size
+  private readonly PROGRESS_THROTTLE = 100; // ms between progress updates
+
+  constructor(dbService: DatabaseService, thumbnailService: ThumbnailService, mainWindow?: BrowserWindow) {
     this.dbService = dbService;
     this.thumbnailService = thumbnailService;
+    if (mainWindow) {
+      this.mainWindow = mainWindow;
+    }
+  }
+
+  setMainWindow(mainWindow: BrowserWindow): void {
+    this.mainWindow = mainWindow;
   }
 
   async addWatchedFolder(folderPath: string): Promise<void> {
@@ -81,47 +106,184 @@ export class FileWatcherService {
   }
 
   private async scanFolder(folderPath: string, folderId: number): Promise<void> {
-    console.log(`Scanning folder: ${folderPath}`);
+    console.log(`[OPTIMIZED] Scanning folder: ${folderPath}`);
+    const startTime = Date.now();
+
+    // Create abort controller for this scan
+    const abortController = new AbortController();
+    this.activeScanControllers.set(folderPath, abortController);
 
     try {
-      const files = await this.getAllFiles(folderPath);
-      const modelFiles = files.filter(file =>
+      // Fast parallel file discovery
+      const allFiles = await this.getAllFilesParallel(folderPath, abortController.signal);
+
+      if (abortController.signal.aborted) {
+        console.log(`Scan cancelled: ${folderPath}`);
+        return;
+      }
+
+      // Filter for supported models
+      const modelFiles = allFiles.filter(file =>
         this.supportedExtensions.includes(path.extname(file).toLowerCase())
       );
 
-      console.log(`Found ${modelFiles.length} 3D models in ${folderPath}`);
+      console.log(`Found ${modelFiles.length} 3D models in ${folderPath} (${allFiles.length} total files)`);
 
-      for (const filePath of modelFiles) {
-        await this.addAssetFromFile(filePath, folderId);
+      // Batch process model files with progress reporting
+      await this.processModelsBatch(modelFiles, folderId, folderPath, abortController.signal);
+
+      if (!abortController.signal.aborted) {
+        this.dbService.markFolderScanned(folderId);
+        const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+        console.log(`[OPTIMIZED] Scan completed in ${duration}s: ${folderPath}`);
+
+        // Send completion notification
+        this.sendProgress({
+          folderId,
+          folderPath,
+          totalFiles: modelFiles.length,
+          processedFiles: modelFiles.length,
+          currentFile: '',
+          foundModels: modelFiles.length
+        });
       }
-
-      this.dbService.markFolderScanned(folderId);
     } catch (error) {
-      console.error(`Error scanning folder: ${error}`);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log(`Scan aborted: ${folderPath}`);
+      } else {
+        console.error(`Error scanning folder: ${error}`);
+      }
+    } finally {
+      this.activeScanControllers.delete(folderPath);
     }
   }
 
-  private async getAllFiles(dirPath: string, arrayOfFiles: string[] = []): Promise<string[]> {
-    const files = fs.readdirSync(dirPath);
+  /**
+   * Fast parallel file discovery with configurable concurrency
+   */
+  private async getAllFilesParallel(
+    dirPath: string,
+    signal: AbortSignal,
+    files: string[] = []
+  ): Promise<string[]> {
+    if (signal.aborted) return files;
 
-    for (const file of files) {
-      const fullPath = path.join(dirPath, file);
+    try {
+      const entries = await fsPromises.readdir(dirPath, { withFileTypes: true });
 
-      try {
-        const stat = fs.statSync(fullPath);
+      // Separate files and directories
+      const fileEntries: string[] = [];
+      const dirEntries: string[] = [];
 
-        if (stat.isDirectory()) {
-          arrayOfFiles = await this.getAllFiles(fullPath, arrayOfFiles);
-        } else {
-          arrayOfFiles.push(fullPath);
+      for (const entry of entries) {
+        const fullPath = path.join(dirPath, entry.name);
+
+        if (entry.isDirectory()) {
+          dirEntries.push(fullPath);
+        } else if (entry.isFile()) {
+          fileEntries.push(fullPath);
         }
-      } catch (error) {
-        // Skip files we can't access
-        console.warn(`Cannot access: ${fullPath}`);
+      }
+
+      // Add files to result
+      files.push(...fileEntries);
+
+      // Process subdirectories in parallel with concurrency limit
+      if (dirEntries.length > 0) {
+        await this.processInBatches(
+          dirEntries,
+          this.MAX_CONCURRENT_SCANS,
+          async (subDir) => {
+            if (!signal.aborted) {
+              await this.getAllFilesParallel(subDir, signal, files);
+            }
+          }
+        );
+      }
+
+      return files;
+    } catch (error) {
+      // Skip directories we can't access
+      console.warn(`Cannot access: ${dirPath}`);
+      return files;
+    }
+  }
+
+  /**
+   * Process items in batches with concurrency control
+   */
+  private async processInBatches<T>(
+    items: T[],
+    batchSize: number,
+    processor: (item: T) => Promise<void>
+  ): Promise<void> {
+    for (let i = 0; i < items.length; i += batchSize) {
+      const batch = items.slice(i, i + batchSize);
+      await Promise.all(batch.map(item => processor(item)));
+    }
+  }
+
+  /**
+   * Process model files in batches with progress reporting
+   */
+  private async processModelsBatch(
+    modelFiles: string[],
+    folderId: number,
+    folderPath: string,
+    signal: AbortSignal
+  ): Promise<void> {
+    let processedCount = 0;
+    let foundModels = 0;
+    let lastProgressUpdate = Date.now();
+
+    for (let i = 0; i < modelFiles.length; i += this.BATCH_SIZE) {
+      if (signal.aborted) break;
+
+      const batch = modelFiles.slice(i, i + this.BATCH_SIZE);
+
+      // Process batch in parallel
+      const results = await Promise.allSettled(
+        batch.map(filePath => this.addAssetFromFile(filePath, folderId))
+      );
+
+      // Count successful additions
+      foundModels += results.filter(r => r.status === 'fulfilled').length;
+      processedCount += batch.length;
+
+      // Throttled progress updates
+      const now = Date.now();
+      if (now - lastProgressUpdate >= this.PROGRESS_THROTTLE) {
+        this.sendProgress({
+          folderId,
+          folderPath,
+          totalFiles: modelFiles.length,
+          processedFiles: processedCount,
+          currentFile: batch[0] ? path.basename(batch[0]) : '',
+          foundModels
+        });
+        lastProgressUpdate = now;
       }
     }
+  }
 
-    return arrayOfFiles;
+  /**
+   * Send progress update to renderer process
+   */
+  private sendProgress(progress: ScanProgress): void {
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send('scan-progress', progress);
+    }
+  }
+
+  /**
+   * Cancel an active folder scan
+   */
+  cancelScan(folderPath: string): void {
+    const controller = this.activeScanControllers.get(folderPath);
+    if (controller) {
+      controller.abort();
+      console.log(`Cancelling scan: ${folderPath}`);
+    }
   }
 
   private async addAssetFromFile(filePath: string, folderId: number): Promise<void> {

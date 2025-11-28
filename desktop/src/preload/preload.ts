@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   removeWatchedFolder: (id: number) => ipcRenderer.invoke('folders:remove', id),
   toggleWatchedFolder: (id: number, enabled: boolean) => ipcRenderer.invoke('folders:toggle', id, enabled),
   rescanFolder: (id: number) => ipcRenderer.invoke('folders:rescan', id),
+  cancelScan: (folderPath: string) => ipcRenderer.invoke('folders:cancelScan', folderPath),
 
   // File operations
   getFilePath: (id: number) => ipcRenderer.invoke('file:getPath', id),
@@ -52,6 +53,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const listener = (_event: any, id: number) => callback(id);
     ipcRenderer.on('asset:removed', listener);
     return () => ipcRenderer.removeListener('asset:removed', listener);
+  },
+  onScanProgress: (callback: (progress: any) => void) => {
+    const listener = (_event: any, progress: any) => callback(progress);
+    ipcRenderer.on('scan-progress', listener);
+    return () => ipcRenderer.removeListener('scan-progress', listener);
   }
 });
 
@@ -69,6 +75,7 @@ export interface ElectronAPI {
   removeWatchedFolder: (id: number) => Promise<boolean>;
   toggleWatchedFolder: (id: number, enabled: boolean) => Promise<any>;
   rescanFolder: (id: number) => Promise<boolean>;
+  cancelScan: (folderPath: string) => Promise<boolean>;
   getFilePath: (id: number) => Promise<string | null>;
   getThumbnail: (id: number) => Promise<string | null>;
   readModelFile: (id: number) => Promise<Uint8Array | null>;
@@ -80,6 +87,7 @@ export interface ElectronAPI {
   onAssetAdded: (callback: (asset: any) => void) => () => void;
   onAssetUpdated: (callback: (asset: any) => void) => () => void;
   onAssetRemoved: (callback: (id: number) => void) => () => void;
+  onScanProgress: (callback: (progress: any) => void) => () => void;
 }
 
 declare global {
