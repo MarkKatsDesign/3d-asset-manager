@@ -8,6 +8,7 @@
   import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
   import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
+  import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';
   import { localAssetStore } from '../stores/localAssetStore';
 
   export let asset;
@@ -33,6 +34,7 @@
   let hdriError = null;
   let showGrid = false;
   let transparentBackground = false;
+  let showHDRIBackground = false;
   let backgroundColor = '#2a2a3e'; // Default studio blue
   let isLightBackground = false; // Tracks if current background is light
   let isDarkCard = false; // Tracks if card should use dark styling (for light backgrounds)
@@ -299,6 +301,10 @@
     if (transparentBackground) {
       scene.background = null;
       scene.fog = null;
+    } else if (showHDRIBackground && scene.environment) {
+      // Show HDRI as background
+      scene.background = scene.environment;
+      scene.fog = null; // Disable fog with HDRI background
     } else {
       const bgColor = new THREE.Color(backgroundColor);
       scene.background = bgColor;
@@ -520,11 +526,10 @@
     const file = event.target.files[0];
     if (!file) return;
 
-    // Validate file size (max 15MB for HDRI)
-    const maxSize = 15 * 1024 * 1024; // 15MB
-    if (file.size > maxSize) {
-      hdriError = `File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Please use a file smaller than 15MB.`;
-      return;
+    // Show warning for large files but still allow loading
+    const fileSizeMB = file.size / 1024 / 1024;
+    if (fileSizeMB > 50) {
+      console.warn(`Large HDRI file detected: ${fileSizeMB.toFixed(1)}MB. Loading may take a moment...`);
     }
 
     hdriError = null;
@@ -537,10 +542,21 @@
       let texture;
 
       if (fileName.endsWith('.hdr')) {
-        // Load HDR file
+        // Load HDR file (RGBE format)
         const rgbeLoader = new RGBELoader();
         texture = await new Promise((resolve, reject) => {
           rgbeLoader.load(
+            fileURL,
+            (loadedTexture) => resolve(loadedTexture),
+            undefined,
+            (err) => reject(err)
+          );
+        });
+      } else if (fileName.endsWith('.exr')) {
+        // Load EXR file (OpenEXR format)
+        const exrLoader = new EXRLoader();
+        texture = await new Promise((resolve, reject) => {
+          exrLoader.load(
             fileURL,
             (loadedTexture) => resolve(loadedTexture),
             undefined,
@@ -559,7 +575,7 @@
           );
         });
       } else {
-        throw new Error('Unsupported file format. Please use .hdr, .jpg, or .png files.');
+        throw new Error('Unsupported file format. Please use .hdr, .exr, .jpg, or .png files.');
       }
 
       // Set texture mapping
@@ -620,6 +636,7 @@
     updateSceneBackground();
     transparentBackground; // Reactive dependency
     backgroundColor; // Reactive dependency
+    showHDRIBackground; // Reactive dependency
   }
 
   // Update isLightBackground when backgroundColor changes (for color picker)
@@ -636,8 +653,9 @@
 
   // Derived reactive flag for card styling
   $: {
-    isDarkCard = isLightBackground && !transparentBackground;
-    console.log('isDarkCard:', isDarkCard, 'isLight:', isLightBackground, 'transparent:', transparentBackground);
+    // Use dark card when: light solid background OR HDRI background is shown
+    isDarkCard = (isLightBackground && !transparentBackground) || showHDRIBackground;
+    console.log('isDarkCard:', isDarkCard, 'isLight:', isLightBackground, 'transparent:', transparentBackground, 'hdriBackground:', showHDRIBackground);
   }
 
   async function loadModel() {
@@ -1168,8 +1186,22 @@
                 </button>
               </div>
 
-              <!-- Background Color Selector (only when not transparent) -->
-              {#if !transparentBackground}
+              <!-- HDRI Background Toggle (only when environment is available and not transparent) -->
+              {#if !transparentBackground && (useEnvironment && scene?.environment)}
+                <div class="flex items-center justify-between">
+                  <label for="hdri-bg-toggle" class="text-sm {isDarkCard ? 'text-white' : 'text-white/80'}">Show HDRI Background</label>
+                  <button
+                    id="hdri-bg-toggle"
+                    on:click={() => showHDRIBackground = !showHDRIBackground}
+                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors {showHDRIBackground ? 'bg-indigo-500' : isDarkCard ? 'bg-white/30' : 'bg-white/20'}"
+                  >
+                    <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform {showHDRIBackground ? 'translate-x-6' : 'translate-x-1'}"></span>
+                  </button>
+                </div>
+              {/if}
+
+              <!-- Background Color Selector (only when not transparent and not showing HDRI) -->
+              {#if !transparentBackground && !showHDRIBackground}
                 <div class="space-y-2 pt-2 border-t {isDarkCard ? 'border-white/20' : 'border-white/10'}">
                   <label for="bg-color-picker" class="text-sm font-medium {isDarkCard ? 'text-white' : 'text-white/80'}">Background Color</label>
                   <div class="flex flex-wrap gap-2">
@@ -1248,7 +1280,7 @@
                     <!-- Upload button when no custom HDRI -->
                     <input
                       type="file"
-                      accept=".hdr,.jpg,.jpeg,.png"
+                      accept=".hdr,.exr,.jpg,.jpeg,.png"
                       on:change={handleHDRIUpload}
                       class="hidden"
                       id="hdri-file"
@@ -1263,15 +1295,15 @@
                           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <span class="text-sm">Processing...</span>
+                        <span class="text-sm">Loading HDRI...</span>
                       {:else}
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 1 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
                         <span class="text-sm">Upload HDRI</span>
                       {/if}
                     </label>
-                    <p class="text-xs {isDarkCard ? 'text-white/90' : 'text-white/40'}">Supports: .hdr, .jpg, .png (max 15MB)</p>
+                    <p class="text-xs {isDarkCard ? 'text-white/90' : 'text-white/40'}">Supports: .hdr, .exr, .jpg, .png</p>
                   {/if}
 
                   <!-- Error message -->
