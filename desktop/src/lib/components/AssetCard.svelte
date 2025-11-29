@@ -1,8 +1,14 @@
 <script>
   import { createEventDispatcher, onMount } from 'svelte';
   import { localAssetStore } from '../stores/localAssetStore';
+  import { themeStore, themes } from '../stores/themeStore';
 
   export let asset;
+
+  let theme;
+  themeStore.subscribe(value => {
+    theme = themes[value];
+  });
 
   const dispatch = createEventDispatcher();
   let thumbnailUrl = null;
@@ -63,6 +69,29 @@
     }
     return 'GLB';
   }
+
+  function getFolderBadge() {
+    if (!asset.filePath) return null;
+
+    // Extract folder path from file path
+    const pathParts = asset.filePath.split(/[/\\]/);
+
+    // Get the last 1-2 folder names (not the file itself)
+    if (pathParts.length > 2) {
+      const folders = pathParts.slice(-3, -1); // Get last 2 folders before filename
+      const folderName = folders.join('/');
+
+      // Truncate if too long
+      if (folderName.length > 20) {
+        return folderName.substring(0, 18) + '...';
+      }
+      return folderName;
+    }
+
+    return null;
+  }
+
+  $: folderBadge = getFolderBadge();
 </script>
 
 <div
@@ -101,10 +130,24 @@
       </div>
     </div>
 
-    <!-- File format badge -->
-    <div class="absolute top-3 right-3 bg-black/50 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold">
-      {getFileExtension()}
+    <!-- File format badge (top-left) -->
+    <div class="absolute top-3 left-3">
+      <div class="bg-black/50 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold">
+        {getFileExtension()}
+      </div>
     </div>
+
+    <!-- Folder badge (top-right, theme-aware with glassmorphism) -->
+    {#if folderBadge}
+      <div class="absolute top-3 right-3">
+        <div class="folder-badge {theme?.colors.accentPrimary} px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 text-white">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
+          {folderBadge}
+        </div>
+      </div>
+    {/if}
   </div>
 
   <!-- Content -->
@@ -164,5 +207,29 @@
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  /* Glassmorphism effect for folder badge */
+  .folder-badge {
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    background-color: rgba(var(--badge-color), 0.3) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow:
+      0 8px 32px 0 rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* Theme-specific colors for glassmorphism */
+  .folder-badge.bg-indigo-600 {
+    background-color: rgba(79, 70, 229, 0.3) !important;
+  }
+
+  .folder-badge.bg-purple-600 {
+    background-color: rgba(147, 51, 234, 0.3) !important;
+  }
+
+  .folder-badge.bg-violet-500 {
+    background-color: rgba(139, 92, 246, 0.3) !important;
   }
 </style>

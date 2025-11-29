@@ -19,48 +19,61 @@
   /* Theme-specific text color overrides */
   body[data-theme="arctic"] {
     /* Override all white text to dark for light theme */
-    color: rgb(17, 24, 39) !important; /* gray-900 */
+    color: rgb(0, 0, 0) !important; /* Pure black for better contrast */
   }
 
   body[data-theme="arctic"] .text-white {
-    color: rgb(17, 24, 39) !important; /* gray-900 */
+    color: rgb(0, 0, 0) !important; /* Pure black for better contrast */
+    font-weight: 500; /* Slightly bolder */
   }
 
   body[data-theme="arctic"] .text-white\/70 {
-    color: rgb(75, 85, 99) !important; /* gray-600 */
+    color: rgb(55, 65, 81) !important; /* gray-700 - darker */
   }
 
   body[data-theme="arctic"] .text-white\/60 {
-    color: rgb(107, 114, 128) !important; /* gray-500 */
+    color: rgb(75, 85, 99) !important; /* gray-600 - darker */
   }
 
   body[data-theme="arctic"] .text-white\/40 {
-    color: rgb(156, 163, 175) !important; /* gray-400 */
+    color: rgb(107, 114, 128) !important; /* gray-500 - darker */
   }
 
   body[data-theme="arctic"] .glass-card {
-    background: rgba(255, 255, 255, 0.8) !important;
-    border-color: rgb(229, 231, 235) !important; /* gray-200 */
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1) !important;
+    background: rgba(255, 255, 255, 0.4) !important;
+    backdrop-filter: blur(20px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(150%) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.5) !important;
   }
 
   body[data-theme="arctic"] .glass-card:hover {
-    background: rgba(255, 255, 255, 1) !important; /* white */
-    border-color: rgb(209, 213, 219) !important; /* gray-300 */
-    box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.15), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
+    background: rgba(255, 255, 255, 0.5) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.6) !important;
   }
 
-  /* Glass card text for light theme */
+  /* Glass card text for light theme - stronger/darker for transparent cards */
   body[data-theme="arctic"] .glass-card h3,
   body[data-theme="arctic"] .glass-card label,
   body[data-theme="arctic"] .glass-card p,
   body[data-theme="arctic"] .glass-card span {
-    color: rgb(17, 24, 39) !important; /* gray-900 */
+    color: rgb(0, 0, 0) !important; /* Pure black for better contrast */
+    font-weight: 500; /* Medium weight for better readability */
+  }
+
+  body[data-theme="arctic"] .glass-card h3 {
+    font-weight: 700; /* Bold for titles */
   }
 
   body[data-theme="arctic"] .glass-card .text-sm,
   body[data-theme="arctic"] .glass-card .text-xs {
-    color: rgb(75, 85, 99) !important; /* gray-600 */
+    color: rgb(55, 65, 81) !important; /* gray-700 - darker */
+    font-weight: 500; /* Medium weight */
   }
 
   /* Borders for light theme */
@@ -128,7 +141,8 @@
   body[data-theme="arctic"] .theme-menu-glass {
     background: rgba(255, 255, 255, 0.9) !important;
     border-color: rgb(209, 213, 219) !important; /* gray-300 */
-    box-shadow: 0 8px 32px 0 rgb(0 0 0 / 0.15), 0 0 0 1px rgb(0 0 0 / 0.05) inset !important;
+    box-shadow: 0 8px 32px 0 rgb(0 0 0 / 0.15),
+      0 0 0 1px rgb(0 0 0 / 0.05) inset !important;
     color: rgb(17, 24, 39) !important; /* gray-900 */
   }
 
@@ -151,6 +165,32 @@
     background: rgba(255, 255, 255, 0.85) !important;
     color: rgb(17, 24, 39) !important; /* gray-900 */
     border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  /* Folder badge - keep text white for Arctic theme */
+  body[data-theme="arctic"] .bg-purple-600.text-white {
+    color: white !important;
+  }
+
+  body[data-theme="arctic"] .bg-purple-600 {
+    color: white !important;
+  }
+
+  body[data-theme="arctic"] .bg-purple-600 svg {
+    color: white !important;
+  }
+
+  body[data-theme="arctic"] .bg-purple-600 * {
+    color: white !important;
+  }
+
+  /* View toggle buttons & file type filters - keep text white for Arctic theme */
+  body[data-theme="arctic"] button.bg-purple-600 {
+    color: white !important;
+  }
+
+  body[data-theme="arctic"] button.bg-purple-600 svg {
+    color: white !important;
   }
 
   /* macOS Dark theme text colors */

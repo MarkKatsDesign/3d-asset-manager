@@ -58,12 +58,12 @@ export const themes = {
       textMuted: "text-gray-500",
 
       // Accent colors
-      accentPrimary: "bg-blue-500",
-      accentHover: "hover:bg-blue-600",
-      accentText: "text-blue-500",
+      accentPrimary: "bg-purple-600",
+      accentHover: "hover:bg-purple-500",
+      accentText: "text-purple-600",
 
       // Buttons
-      buttonPrimary: "bg-blue-500 hover:bg-blue-600 text-white",
+      buttonPrimary: "bg-purple-600 hover:bg-purple-500 text-white",
       buttonSecondary: "bg-gray-100 hover:bg-gray-200 text-gray-900",
 
       // Borders
@@ -93,12 +93,12 @@ export const themes = {
       textMuted: "text-zinc-400",
 
       // Accent colors
-      accentPrimary: "bg-blue-600",
-      accentHover: "hover:bg-blue-500",
-      accentText: "text-blue-400",
+      accentPrimary: "bg-violet-500",
+      accentHover: "hover:bg-violet-400",
+      accentText: "text-violet-400",
 
       // Buttons
-      buttonPrimary: "bg-blue-600 hover:bg-blue-500 text-white",
+      buttonPrimary: "bg-violet-500 hover:bg-violet-400 text-white",
       buttonSecondary: "bg-zinc-700 hover:bg-zinc-600 text-zinc-100",
 
       // Borders

@@ -7,7 +7,10 @@ function createLocalAssetStore() {
     loading: false,
     error: null,
     searchQuery: '',
-    selectedTags: []
+    selectedTags: [],
+    sortBy: 'date-desc',
+    selectedFileTypes: [],
+    viewMode: 'grid' // 'grid' or 'grouped'
   });
 
   let unsubscribeAdded = null;
@@ -224,8 +227,20 @@ function createLocalAssetStore() {
       update(state => ({ ...state, selectedTags: tags }));
     },
 
+    setSortBy: (sortBy) => {
+      update(state => ({ ...state, sortBy }));
+    },
+
+    setFileTypeFilter: (fileTypes) => {
+      update(state => ({ ...state, selectedFileTypes: fileTypes }));
+    },
+
+    setViewMode: (viewMode) => {
+      update(state => ({ ...state, viewMode }));
+    },
+
     getFilteredAssets: (state) => {
-      let filtered = state.assets;
+      let filtered = [...state.assets];
 
       // Filter by search query
       if (state.searchQuery) {
@@ -243,7 +258,73 @@ function createLocalAssetStore() {
         );
       }
 
+      // Filter by file type
+      if (state.selectedFileTypes && state.selectedFileTypes.length > 0) {
+        filtered = filtered.filter(asset => {
+          const ext = asset.filePath?.split('.').pop()?.toUpperCase();
+          return state.selectedFileTypes.includes(ext);
+        });
+      }
+
+      // Sort assets
+      const sortBy = state.sortBy || 'date-desc';
+
+      filtered.sort((a, b) => {
+        switch (sortBy) {
+          case 'date-desc':
+            return new Date(b.createdAt || b.updatedAt) - new Date(a.createdAt || a.updatedAt);
+
+          case 'date-asc':
+            return new Date(a.createdAt || a.updatedAt) - new Date(b.createdAt || b.updatedAt);
+
+          case 'name-asc':
+            return a.name.localeCompare(b.name);
+
+          case 'name-desc':
+            return b.name.localeCompare(a.name);
+
+          case 'size-desc':
+            return (b.fileSize || 0) - (a.fileSize || 0);
+
+          case 'size-asc':
+            return (a.fileSize || 0) - (b.fileSize || 0);
+
+          default:
+            return 0;
+        }
+      });
+
       return filtered;
+    },
+
+    getGroupedAssets: (state) => {
+      const filtered = store.getFilteredAssets(state);
+      const groups = {};
+
+      filtered.forEach(asset => {
+        // Extract folder path from file path
+        const pathParts = asset.filePath.split(/[/\\]/);
+
+        // Get the parent folder (last folder before filename)
+        let folderKey = 'Root';
+        if (pathParts.length > 2) {
+          // Get last 2 folders for grouping
+          const folders = pathParts.slice(-3, -1);
+          folderKey = folders.join('/');
+        }
+
+        if (!groups[folderKey]) {
+          groups[folderKey] = {
+            name: folderKey,
+            assets: []
+          };
+        }
+
+        groups[folderKey].assets.push(asset);
+      });
+
+      // Convert to array and sort by folder name
+      return Object.values(groups).sort((a, b) => a.name.localeCompare(b.name));
     },
 
     cleanup: () => {

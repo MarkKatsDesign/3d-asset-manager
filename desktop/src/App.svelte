@@ -5,7 +5,9 @@
   import { themeStore, themes, backgroundStore } from './lib/stores/themeStore';
   import Navbar from './lib/components/Navbar.svelte';
   import SearchBar from './lib/components/SearchBar.svelte';
+  import FilterToolbar from './lib/components/FilterToolbar.svelte';
   import AssetGrid from './lib/components/AssetGrid.svelte';
+  import GroupedAssetGrid from './lib/components/GroupedAssetGrid.svelte';
   import AssetViewer from './lib/components/AssetViewer.svelte';
   import FolderManager from './lib/components/FolderManager.svelte';
   import BackgroundCustomizer from './lib/components/BackgroundCustomizer.svelte';
@@ -145,11 +147,21 @@
       </div>
     </div>
 
-    <!-- Asset Grid -->
-    <AssetGrid
-      on:view={handleViewAsset}
-      on:manageFolders={handleManageFolders}
-    />
+    <!-- Filter Toolbar -->
+    <FilterToolbar />
+
+    <!-- Asset Grid or Grouped View -->
+    {#if $localAssetStore.viewMode === 'grouped'}
+      <GroupedAssetGrid
+        on:view={handleViewAsset}
+        on:manageFolders={handleManageFolders}
+      />
+    {:else}
+      <AssetGrid
+        on:view={handleViewAsset}
+        on:manageFolders={handleManageFolders}
+      />
+    {/if}
   </div>
 
   <!-- Modals -->
