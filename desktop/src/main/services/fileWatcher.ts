@@ -103,8 +103,6 @@ export class FileWatcherService {
   }
 
   private async scanFolder(folderPath: string, folderId: number): Promise<void> {
-    const startTime = Date.now();
-
     // Create abort controller for this scan
     const abortController = new AbortController();
     this.activeScanControllers.set(folderPath, abortController);
@@ -347,7 +345,7 @@ export class FileWatcherService {
   }
 
   cleanup(): void {
-    for (const [folderPath, watcher] of this.watchers) {
+    for (const [, watcher] of this.watchers) {
       watcher.close();
     }
     this.watchers.clear();

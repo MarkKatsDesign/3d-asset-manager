@@ -76,7 +76,7 @@
     <div class="flex items-center gap-6">
       <!-- Sort Dropdown -->
       <div class="flex items-center gap-3">
-        <label class="text-sm text-white/60 font-medium">Sort:</label>
+        <span class="text-sm text-white/60 font-medium">Sort:</span>
         <select
           value={sortBy}
           on:change={handleSortChange}
@@ -130,7 +130,7 @@
 
       <!-- File Type Filters -->
       <div class="flex items-center gap-3">
-        <span class="text-sm text-white/60 font-medium">File Type:</span>
+        <span class="text-sm text-white/60 font-medium" aria-label="Filter by file type">File Type:</span>
         <div class="flex gap-2">
           {#each fileTypes as type}
             {@const isSelected = selectedFileTypes.includes(type)}
