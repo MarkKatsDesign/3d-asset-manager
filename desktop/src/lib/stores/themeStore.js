@@ -42,10 +42,10 @@ export const themes = {
     font: "Manrope",
     colors: {
       // Backgrounds
-      bgPrimary: "from-gray-50 via-gray-100 to-gray-50",
-      bgSecondary: "bg-white",
-      bgCard: "bg-white",
-      bgCardHover: "bg-gray-50",
+      bgPrimary: "from-slate-300 via-gray-500 to-slate-300",
+      bgSecondary: "bg-slate-800",
+      bgCard: "bg-slate-800/50",
+      bgCardHover: "bg-slate-800",
 
       // Glass effects (subtle for light theme)
       glassBase:

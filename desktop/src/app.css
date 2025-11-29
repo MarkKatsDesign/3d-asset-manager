@@ -32,11 +32,11 @@
   }
 
   body[data-theme="arctic"] .text-white\/60 {
-    color: rgb(75, 85, 99) !important; /* gray-600 - darker */
+    color: rgba(255, 255, 255, 0.85) !important; /* White with transparency */
   }
 
   body[data-theme="arctic"] .text-white\/40 {
-    color: rgb(107, 114, 128) !important; /* gray-500 - darker */
+    color: rgba(255, 255, 255, 0.6) !important; /* White with more transparency */
   }
 
   body[data-theme="arctic"] .glass-card {
@@ -58,22 +58,69 @@
   }
 
   /* Glass card text for light theme - stronger/darker for transparent cards */
-  body[data-theme="arctic"] .glass-card h3,
   body[data-theme="arctic"] .glass-card label,
-  body[data-theme="arctic"] .glass-card p,
+  body[data-theme="arctic"] .glass-card p:not(.gradient-text),
   body[data-theme="arctic"] .glass-card span {
     color: rgb(0, 0, 0) !important; /* Pure black for better contrast */
     font-weight: 500; /* Medium weight for better readability */
   }
 
   body[data-theme="arctic"] .glass-card h3 {
+    color: rgba(255, 255, 255, 0.95) !important; /* White title */
     font-weight: 700; /* Bold for titles */
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); /* Subtle shadow for readability */
   }
 
-  body[data-theme="arctic"] .glass-card .text-sm,
-  body[data-theme="arctic"] .glass-card .text-xs {
+  /* Preserve gradient text in glass cards */
+  body[data-theme="arctic"] .glass-card .gradient-text {
+    color: transparent !important; /* Let gradient show through */
+    background-clip: text !important;
+    -webkit-background-clip: text !important;
+  }
+
+  body[data-theme="arctic"] .glass-card .text-sm:not(.text-white\/60):not(.text-white\/40),
+  body[data-theme="arctic"] .glass-card .text-xs:not(.text-white\/60):not(.text-white\/40) {
     color: rgb(55, 65, 81) !important; /* gray-700 - darker */
     font-weight: 500; /* Medium weight */
+  }
+
+  /* Footer text - keep white for better aesthetics */
+  body[data-theme="arctic"] .glass-card .border-t ~ div .text-xs,
+  body[data-theme="arctic"] .glass-card footer .text-xs,
+  body[data-theme="arctic"] .glass-card .text-white\/60,
+  body[data-theme="arctic"] .glass-card .text-white\/40 {
+    color: rgba(255, 255, 255, 0.9) !important; /* White with slight transparency */
+  }
+
+  body[data-theme="arctic"] .glass-card svg.text-white\/40 {
+    color: rgba(255, 255, 255, 0.7) !important; /* White icon */
+  }
+
+  /* Stats section - white text for labels */
+  body[data-theme="arctic"] .glass-card .text-sm.text-gray-500,
+  body[data-theme="arctic"] .glass-card p.text-sm {
+    color: rgba(255, 255, 255, 0.85) !important; /* White labels */
+  }
+
+  /* Subtitle text - white for Arctic theme */
+  body[data-theme="arctic"] .text-xl.text-gray-500,
+  body[data-theme="arctic"] p.text-xl {
+    color: rgba(255, 255, 255, 0.9) !important; /* White subtitle */
+  }
+
+  /* Navbar text - ensure white with HIGHEST specificity */
+  body[data-theme="arctic"] nav.glass-card p.text-xs.text-white\/60,
+  body[data-theme="arctic"] nav .text-white\/60,
+  body[data-theme="arctic"] nav p.text-xs,
+  body[data-theme="arctic"] nav.glass-card .text-xs {
+    color: rgba(255, 255, 255, 0.85) !important; /* White navbar text */
+    font-weight: 400 !important; /* Normal weight for navbar */
+  }
+
+  /* Override any other text-xs rules for navbar */
+  body[data-theme="arctic"] nav p,
+  body[data-theme="arctic"] nav span {
+    color: rgba(255, 255, 255, 0.85) !important;
   }
 
   /* Borders for light theme */
@@ -243,7 +290,7 @@
     @apply bg-clip-text text-transparent;
   }
 
-  /* Arctic theme - darker gradient for light background */
+  /* Arctic theme - darker gradient for better white text visibility */
   body[data-theme="arctic"] .gradient-text {
     @apply bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-700;
     @apply bg-clip-text text-transparent;
