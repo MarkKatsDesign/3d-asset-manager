@@ -75,15 +75,11 @@ function createLocalAssetStore() {
             continue;
           }
 
-          console.log(`Generating thumbnail for asset ${asset.id}: ${asset.name}`);
-
           // Generate thumbnail
           const thumbnailData = await generateThumbnail(asset.id, asset.filePath);
 
           // Save to database
           await window.electronAPI.saveThumbnail(asset.id, thumbnailData);
-
-          console.log(`✓ Thumbnail generated for ${asset.name}`);
         } catch (error) {
           console.error(`Error generating thumbnail for asset ${asset.id}:`, error);
           // Continue with other assets even if one fails
@@ -95,11 +91,9 @@ function createLocalAssetStore() {
       try {
         // Clear all existing thumbnails
         const clearedCount = await window.electronAPI.clearAllThumbnails();
-        console.log(`Cleared ${clearedCount} thumbnails`);
 
         // Get all current assets
         const assets = await window.electronAPI.getAssets();
-        console.log(`Regenerating thumbnails for ${assets.length} assets...`);
 
         // Generate thumbnails for all assets
         let successCount = 0;
@@ -107,20 +101,16 @@ function createLocalAssetStore() {
 
         for (const asset of assets) {
           try {
-            console.log(`[${successCount + failCount + 1}/${assets.length}] Generating thumbnail for: ${asset.name}`);
-
             const thumbnailData = await generateThumbnail(asset.id, asset.filePath);
             await window.electronAPI.saveThumbnail(asset.id, thumbnailData);
 
             successCount++;
-            console.log(`✓ Thumbnail generated for ${asset.name}`);
           } catch (error) {
             failCount++;
             console.error(`✗ Error generating thumbnail for ${asset.name}:`, error);
           }
         }
 
-        console.log(`Thumbnail regeneration complete: ${successCount} successful, ${failCount} failed`);
         return { success: true, total: assets.length, successful: successCount, failed: failCount };
       } catch (error) {
         console.error('Error regenerating thumbnails:', error);

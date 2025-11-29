@@ -239,7 +239,6 @@ ipcMain.handle(
 ipcMain.handle("thumbnails:clearAll", async () => {
   try {
     const count = dbService.clearAllThumbnails();
-    console.log(`Cleared ${count} thumbnails`);
     return count;
   } catch (error) {
     console.error("Error clearing thumbnails:", error);

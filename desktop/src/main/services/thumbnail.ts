@@ -1,6 +1,6 @@
-import { DatabaseService } from './database.js';
-import * as fs from 'fs';
-import * as path from 'path';
+import { DatabaseService } from "./database.js";
+import * as fs from "fs";
+import * as path from "path";
 
 export class ThumbnailService {
   private dbService: DatabaseService;
@@ -26,7 +26,10 @@ export class ThumbnailService {
     }
   }
 
-  private async doGenerateThumbnail(assetId: number, filePath: string): Promise<void> {
+  private async doGenerateThumbnail(
+    assetId: number,
+    filePath: string
+  ): Promise<void> {
     try {
       // Verify file exists
       if (!fs.existsSync(filePath)) {
@@ -45,13 +48,10 @@ export class ThumbnailService {
       // The actual thumbnail will be generated when the user first views the asset
       // This is handled by the renderer process which has access to Three.js
 
-      console.log(`Thumbnail generation queued for asset ${assetId}`);
-
       // Create a simple placeholder - in practice, the renderer will generate real thumbnails
       // when assets are first displayed
       const placeholder = await this.createPlaceholder(path.extname(filePath));
       this.dbService.saveThumbnail(assetId, placeholder);
-
     } catch (error) {
       console.error(`Error generating thumbnail for asset ${assetId}:`, error);
     }
@@ -83,12 +83,14 @@ export class ThumbnailService {
   saveThumbnailFromRenderer(assetId: number, thumbnailData: string): void {
     try {
       // thumbnailData is a base64 string like "data:image/jpeg;base64,..."
-      const base64Data = thumbnailData.replace(/^data:image\/\w+;base64,/, '');
-      const buffer = Buffer.from(base64Data, 'base64');
+      const base64Data = thumbnailData.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
       this.dbService.saveThumbnail(assetId, buffer);
-      console.log(`Saved thumbnail for asset ${assetId} from renderer`);
     } catch (error) {
-      console.error(`Error saving thumbnail from renderer for asset ${assetId}:`, error);
+      console.error(
+        `Error saving thumbnail from renderer for asset ${assetId}:`,
+        error
+      );
     }
   }
 }

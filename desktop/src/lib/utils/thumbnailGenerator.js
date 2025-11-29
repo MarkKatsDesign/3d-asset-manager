@@ -127,7 +127,6 @@ export async function generateThumbnail(assetId, filePath = '', width = 400, hei
 
     // Determine file extension
     const extension = filePath ? filePath.toLowerCase().substring(filePath.lastIndexOf('.')) : '.glb';
-    console.log(`Loading thumbnail with extension: ${extension}`);
 
     // Load the model based on file extension
     return new Promise((resolve, reject) => {

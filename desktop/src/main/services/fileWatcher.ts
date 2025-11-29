@@ -44,7 +44,6 @@ export class FileWatcherService {
 
   async addWatchedFolder(folderPath: string): Promise<void> {
     if (this.watchers.has(folderPath)) {
-      console.log(`Already watching: ${folderPath}`);
       return;
     }
 
@@ -76,7 +75,6 @@ export class FileWatcherService {
       .on('error', (error) => console.error(`Watcher error: ${error}`));
 
     this.watchers.set(folderPath, watcher);
-    console.log(`Now watching: ${folderPath}`);
   }
 
   removeWatchedFolder(folderPath: string): void {
@@ -84,7 +82,6 @@ export class FileWatcherService {
     if (watcher) {
       watcher.close();
       this.watchers.delete(folderPath);
-      console.log(`Stopped watching: ${folderPath}`);
     }
   }
 
@@ -106,7 +103,6 @@ export class FileWatcherService {
   }
 
   private async scanFolder(folderPath: string, folderId: number): Promise<void> {
-    console.log(`[OPTIMIZED] Scanning folder: ${folderPath}`);
     const startTime = Date.now();
 
     // Create abort controller for this scan
@@ -118,7 +114,6 @@ export class FileWatcherService {
       const allFiles = await this.getAllFilesParallel(folderPath, abortController.signal);
 
       if (abortController.signal.aborted) {
-        console.log(`Scan cancelled: ${folderPath}`);
         return;
       }
 
@@ -127,15 +122,11 @@ export class FileWatcherService {
         this.supportedExtensions.includes(path.extname(file).toLowerCase())
       );
 
-      console.log(`Found ${modelFiles.length} 3D models in ${folderPath} (${allFiles.length} total files)`);
-
       // Batch process model files with progress reporting
       await this.processModelsBatch(modelFiles, folderId, folderPath, abortController.signal);
 
       if (!abortController.signal.aborted) {
         this.dbService.markFolderScanned(folderId);
-        const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-        console.log(`[OPTIMIZED] Scan completed in ${duration}s: ${folderPath}`);
 
         // Send completion notification
         this.sendProgress({
@@ -148,9 +139,7 @@ export class FileWatcherService {
         });
       }
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.log(`Scan aborted: ${folderPath}`);
-      } else {
+      if (error instanceof Error && error.name !== 'AbortError') {
         console.error(`Error scanning folder: ${error}`);
       }
     } finally {
@@ -291,7 +280,6 @@ export class FileWatcherService {
       // Check if asset already exists
       const existing = this.dbService.getAssetByPath(filePath);
       if (existing) {
-        console.log(`Asset already exists: ${filePath}`);
         return;
       }
 
@@ -306,8 +294,6 @@ export class FileWatcherService {
         folderId: folderId,
         tags: []
       });
-
-      console.log(`Added asset: ${fileName}`);
 
       // Generate thumbnail asynchronously
       this.thumbnailService.generateThumbnail(asset.id!, filePath)
@@ -326,7 +312,6 @@ export class FileWatcherService {
       return;
     }
 
-    console.log(`New file detected: ${filePath}`);
     await this.addAssetFromFile(filePath, folderId);
   }
 
@@ -338,8 +323,6 @@ export class FileWatcherService {
 
     const asset = this.dbService.getAssetByPath(filePath);
     if (asset) {
-      console.log(`File changed: ${filePath}`);
-
       // Update file size
       const stats = fs.statSync(filePath);
       this.dbService.updateAsset(asset.id!, {
@@ -359,16 +342,13 @@ export class FileWatcherService {
 
     const asset = this.dbService.getAssetByPath(filePath);
     if (asset) {
-      console.log(`File removed: ${filePath}`);
       this.dbService.deleteAsset(asset.id!);
     }
   }
 
   cleanup(): void {
-    console.log('Cleaning up file watchers...');
     for (const [folderPath, watcher] of this.watchers) {
       watcher.close();
-      console.log(`Stopped watching: ${folderPath}`);
     }
     this.watchers.clear();
   }

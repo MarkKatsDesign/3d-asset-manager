@@ -23,7 +23,6 @@
     if (!confirmed) return;
 
     isRegenerating = true;
-    console.log('Starting thumbnail regeneration...');
 
     try {
       const result = await localAssetStore.regenerateAllThumbnails();

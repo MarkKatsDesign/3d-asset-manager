@@ -214,8 +214,6 @@
     // Renderer
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 
-    console.log('Container dimensions:', container.clientWidth, container.clientHeight);
-
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
@@ -226,8 +224,6 @@
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.6; // Increase exposure to make models brighter by default
     container.appendChild(renderer.domElement);
-
-    console.log('Renderer initialized with size:', renderer.getSize(new THREE.Vector2()));
 
     // PMREM Generator for environment maps
     pmremGenerator = new THREE.PMREMGenerator(renderer);
@@ -330,20 +326,9 @@
     showQualityMenu = false;
 
     try {
-      console.log('=== SCREENSHOT DEBUG INFO ===');
-      console.log('Scene has environment:', !!scene.environment);
-      console.log('Use environment enabled:', useEnvironment);
-      console.log('Environment intensity:', environmentIntensity);
-      console.log('Custom HDRI loaded:', !!customHDRI);
-      console.log('Main renderer tone mapping exposure:', renderer.toneMappingExposure);
-      console.log('Transparent background:', transparentBackground);
-      console.log('Background color:', backgroundColor);
-
       // Get selected quality preset
       const preset = qualityPresets.find(p => p.id === screenshotQuality);
       if (!preset) return;
-
-      console.log('Screenshot quality:', preset.name);
 
       // Create off-screen renderer at high quality
       const screenshotCanvas = document.createElement('canvas');
@@ -369,9 +354,6 @@
       // This respects the environment intensity settings
       screenshotRenderer.toneMappingExposure = renderer.toneMappingExposure;
 
-      console.log('Screenshot renderer tone mapping exposure:', screenshotRenderer.toneMappingExposure);
-      console.log('Screenshot renderer tone mapping type:', screenshotRenderer.toneMapping);
-
       // Store original background and environment to restore after screenshot
       const originalBackground = scene.background;
       const originalEnvironment = scene.environment;
@@ -393,7 +375,6 @@
       // CRITICAL: Create a new PMREM generator for the screenshot renderer
       // The environment map must be regenerated for this renderer's WebGL context
       if (useEnvironment && originalHDRITexture) {
-        console.log('Regenerating custom HDRI environment map for screenshot renderer...');
         const screenshotPMREM = new THREE.PMREMGenerator(screenshotRenderer);
         screenshotPMREM.compileEquirectangularShader();
 
@@ -407,9 +388,7 @@
         }
 
         screenshotPMREM.dispose();
-        console.log('Custom HDRI environment map regenerated for screenshot');
       } else if (useEnvironment && !originalHDRITexture) {
-        console.log('Using default environment (no custom HDRI to regenerate)');
         // The default environment should already work since it's procedural
         // If HDRI background is enabled, set the default environment as background
         if (showHDRIBackground && scene.environment) {
@@ -422,19 +401,12 @@
       screenshotCamera.aspect = preset.width / preset.height;
       screenshotCamera.updateProjectionMatrix();
 
-      console.log('Camera position:', screenshotCamera.position);
-      console.log('Number of lights in scene:', scene.children.filter(c => c.isLight).length);
-
       // Force the renderer to compile the scene with the environment
       // This ensures all materials and environment maps are ready
-      console.log('Compiling scene for screenshot renderer...');
       screenshotRenderer.compile(scene, screenshotCamera);
-      console.log('Scene compiled');
 
       // Render the scene (which already has all lights, environment, and models)
-      console.log('Rendering screenshot...');
       screenshotRenderer.render(scene, screenshotCamera);
-      console.log('Screenshot rendered');
 
       // Restore original environment and background for the main viewer
       scene.environment = originalEnvironment;
@@ -452,9 +424,7 @@
       // Save screenshot using Electron dialog
       const result = await window.electronAPI.saveScreenshot(imageData, filename);
 
-      if (result.success) {
-        console.log('Screenshot saved to:', result.path);
-      } else if (result.error) {
+      if (result.error) {
         console.error('Screenshot error:', result.error);
       }
 
@@ -501,13 +471,15 @@
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.ClampToEdgeWrapping;
 
+    // Dispose of old environment map if it exists
+    if (scene.environment && scene.environment.dispose) {
+      scene.environment.dispose();
+    }
+
     // Store texture for rotation
     environmentTexture = texture;
 
-    // Apply rotation
-    applyEnvironmentRotation();
-
-    // Generate PMREM for the environment
+    // Generate PMREM for the environment (rotation will be applied later if needed)
     const envMap = pmremGenerator.fromEquirectangular(texture).texture;
 
     // Apply to scene
@@ -572,7 +544,6 @@
     if (!(image instanceof HTMLImageElement ||
           image instanceof HTMLCanvasElement ||
           image instanceof ImageBitmap)) {
-      console.log('Texture image type not supported for canvas rotation:', image?.constructor?.name);
       return sourceTexture;
     }
 
@@ -612,10 +583,8 @@
   function rotateEquirectangularTexture(sourceTexture, rotationDegrees) {
     // Check texture type and use appropriate rotation method
     if (sourceTexture.isDataTexture || !sourceTexture.image?.width) {
-      console.log('Rotating DataTexture (HDR/EXR)...');
       return rotateDataTexturePixels(sourceTexture, rotationDegrees);
     } else {
-      console.log('Rotating image texture (JPG/PNG)...');
       return rotateImageTexture(sourceTexture, rotationDegrees);
     }
   }
@@ -623,15 +592,17 @@
   function applyEnvironmentRotation() {
     if (!environmentTexture || !scene || !pmremGenerator) return;
 
-    console.log('Applying HDRI rotation:', hdriRotation, 'degrees');
-
     // Create rotated version of the texture
     const rotatedTexture = rotateEquirectangularTexture(environmentTexture, hdriRotation);
 
     // If rotation wasn't possible, skip regenerating
     if (rotatedTexture === environmentTexture && hdriRotation !== 0) {
-      console.log('Skipping PMREM regeneration - rotation not supported for this texture type');
       return;
+    }
+
+    // Dispose of old environment map before creating new one
+    if (scene.environment && scene.environment.dispose) {
+      scene.environment.dispose();
     }
 
     // Generate PMREM from rotated texture
@@ -751,14 +722,25 @@
       originalHDRITexture.wrapS = THREE.RepeatWrapping;
       originalHDRITexture.wrapT = THREE.ClampToEdgeWrapping;
 
+      // Dispose of old environment map if it exists
+      if (scene.environment && scene.environment.dispose) {
+        scene.environment.dispose();
+      }
+      if (customHDRI && customHDRI.dispose) {
+        customHDRI.dispose();
+      }
+
       // Store texture for rotation
       environmentTexture = texture;
 
-      // Apply rotation
-      applyEnvironmentRotation();
+      // Generate PMREM with rotation applied
+      const rotatedTexture = rotateEquirectangularTexture(texture, hdriRotation);
+      const envMap = pmremGenerator.fromEquirectangular(rotatedTexture).texture;
 
-      // Generate PMREM
-      const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+      // Clean up rotated texture if different from original
+      if (rotatedTexture !== texture) {
+        rotatedTexture.dispose();
+      }
 
       // Apply to scene
       customHDRI = envMap;
@@ -768,7 +750,6 @@
       // Set to 0.4 for better default appearance
       if (fileName.endsWith('.hdr') || fileName.endsWith('.exr')) {
         environmentIntensity = 0.4;
-        console.log('Auto-adjusted intensity to 0.4 for HDR/EXR file');
       }
 
       updateEnvironmentIntensity();
@@ -785,8 +766,22 @@
   }
 
   function resetToDefaultEnvironment() {
+    // Dispose of custom HDRI resources
+    if (customHDRI && customHDRI.dispose) {
+      customHDRI.dispose();
+    }
+    if (environmentTexture && environmentTexture.dispose) {
+      environmentTexture.dispose();
+    }
+    if (originalHDRITexture && originalHDRITexture.dispose) {
+      originalHDRITexture.dispose();
+    }
+
     customHDRI = null;
+    environmentTexture = null;
+    originalHDRITexture = null;
     hdriError = null;
+    hdriRotation = 0;
     setupEnvironment();
   }
 
@@ -824,10 +819,8 @@
     if (backgroundColor && !transparentBackground) {
       const luminance = getColorLuminance(backgroundColor);
       isLightBackground = luminance > 0.5;
-      console.log('Background color:', backgroundColor, 'Luminance:', luminance, 'isLight:', isLightBackground);
     } else {
       isLightBackground = false;
-      console.log('Transparent or no bg, isLightBackground:', false);
     }
   }
 
@@ -835,12 +828,10 @@
   $: {
     // Use dark card when: light solid background OR HDRI background is shown
     isDarkCard = (isLightBackground && !transparentBackground) || showHDRIBackground;
-    console.log('isDarkCard:', isDarkCard, 'isLight:', isLightBackground, 'transparent:', transparentBackground, 'hdriBackground:', showHDRIBackground);
   }
 
   // Update environment rotation
   $: if (scene && hdriRotation !== undefined) {
-    console.log('Updating environment rotation:', hdriRotation);
     applyEnvironmentRotation();
 
     // Force a render to show the change
@@ -863,8 +854,6 @@
         throw new Error('Failed to read model file');
       }
 
-      console.log('Loading model, data size:', modelData.byteLength);
-
       // Create a blob from the buffer
       const blob = new Blob([modelData]);
       currentBlobUrl = URL.createObjectURL(blob);
@@ -876,8 +865,6 @@
       // Check if this format supports textures (GLTF not included - it requires scene.bin which won't load)
       isGeometryOnlyFormat = ['.obj', '.stl'].includes(extension);
 
-      console.log('Loading file with extension:', extension, 'Geometry only:', isGeometryOnlyFormat);
-
       // Helper function to process and add model to scene
       const processModel = (model) => {
         // Center and scale model
@@ -886,10 +873,6 @@
         const size = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
         const scale = 2 / maxDim;
-
-        // Debug logging
-        console.log('Model bounds:', { center, size, maxDim, scale });
-        console.log('Model before centering:', model.position);
 
         // Create a parent group to ensure proper centering
         const modelGroup = new THREE.Group();
@@ -900,8 +883,6 @@
 
         // Scale the group
         modelGroup.scale.setScalar(scale);
-
-        console.log('Model after centering:', model.position);
 
         // Enable shadows and enhance materials
         model.traverse((child) => {
@@ -962,20 +943,13 @@
         controls.target.set(0, 0, 0);
         controls.update();
 
-        console.log('Camera position:', camera.position);
-        console.log('Optimal distance:', optimalDistance);
-        console.log('Camera looking at:', controls.target);
-
         loading = false;
         animate(); // Start animation loop
       };
 
       // Progress callback
       const onProgress = (progress) => {
-        if (progress.total > 0) {
-          const percentComplete = (progress.loaded / progress.total) * 100;
-          console.log(`Loading: ${percentComplete.toFixed(2)}%`);
-        }
+        // Progress tracking (could be used for loading bars in future)
       };
 
       // Error callback
@@ -1087,6 +1061,25 @@
     if (currentBlobUrl) {
       URL.revokeObjectURL(currentBlobUrl);
       currentBlobUrl = null;
+    }
+
+    // Dispose of environment textures
+    if (scene && scene.environment && scene.environment.dispose) {
+      scene.environment.dispose();
+    }
+    if (customHDRI && customHDRI.dispose) {
+      customHDRI.dispose();
+    }
+    if (environmentTexture && environmentTexture.dispose) {
+      environmentTexture.dispose();
+    }
+    if (originalHDRITexture && originalHDRITexture.dispose) {
+      originalHDRITexture.dispose();
+    }
+
+    // Dispose of PMREM generator
+    if (pmremGenerator) {
+      pmremGenerator.dispose();
     }
 
     if (renderer) {
