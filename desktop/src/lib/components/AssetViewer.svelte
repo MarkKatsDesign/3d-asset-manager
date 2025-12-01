@@ -1254,17 +1254,17 @@
 
           <!-- Quality Menu Dropdown -->
           {#if showQualityMenu && !takingScreenshot}
-            <div class="absolute right-0 mt-2 w-56 glass-card p-2 z-50 animate-slide-down">
-              <div class="text-xs font-semibold opacity-60 px-3 py-2">QUALITY</div>
+            <div class="absolute right-0 mt-2 w-56 p-2 z-50 animate-slide-down {isDarkCard ? 'glass-card-light' : 'glass-card'}">
+              <div class="text-xs font-semibold px-3 py-2 {isDarkCard ? 'text-white/90' : 'opacity-60'}">QUALITY</div>
               {#each qualityPresets as preset}
                 <button
                   on:click={() => { screenshotQuality = preset.id; takeScreenshot(); }}
                   class="w-full px-3 py-2.5 rounded-xl text-left transition-all duration-200 flex items-center justify-between gap-3
-                    {screenshotQuality === preset.id ? 'bg-white/10' : 'hover:bg-white/5'}"
+                    {screenshotQuality === preset.id ? (isDarkCard ? 'bg-white/20' : 'bg-white/10') : (isDarkCard ? 'hover:bg-white/10' : 'hover:bg-white/5')}"
                 >
                   <div>
-                    <div class="font-medium text-sm">{preset.name}</div>
-                    <div class="text-xs opacity-60">{preset.width} × {preset.height}</div>
+                    <div class="font-medium text-sm {isDarkCard ? 'text-white' : ''}">{preset.name}</div>
+                    <div class="text-xs {isDarkCard ? 'text-white/80' : 'opacity-60'}">{preset.width} × {preset.height}</div>
                   </div>
                   {#if screenshotQuality === preset.id}
                     <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
