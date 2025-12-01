@@ -43,44 +43,32 @@
 </script>
 
 <nav class="fixed top-0 left-0 right-0 z-50 glass-card border-b border-white/10 rounded-none">
-  <div class="max-w-[1920px] mx-auto px-8 py-4">
+  <div class="max-w-[1920px] mx-auto px-8 py-3">
     <div class="flex items-center justify-between">
       <!-- Logo & Brand -->
       <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl overflow-hidden shadow-lg">
+        <div class="w-9 h-9 rounded-xl overflow-hidden shadow-lg">
           <img src="../../resources/icon.png" alt="Forma Logo" class="w-full h-full object-cover" />
         </div>
-        <div>
-          <h1 class="text-xl font-bold gradient-text">Forma</h1>
-          <p class="text-xs text-white/60">Preview your local 3D models</p>
-        </div>
+        <h1 class="text-xl font-bold gradient-text">Forma</h1>
       </div>
 
       <!-- Actions -->
-      <div class="flex items-center space-x-4">
-        <!-- Folder Count Badge -->
-        {#if $folderStore.folders.length > 0}
-          <div class="glass-card px-3 py-1 text-sm">
-            <span class="text-white/60">Watching:</span>
-            <span class="ml-1 font-semibold gradient-text">{$folderStore.folders.length}</span>
-            <span class="text-white/60 ml-1">folder{$folderStore.folders.length !== 1 ? 's' : ''}</span>
-          </div>
-        {/if}
+      <div class="flex items-center space-x-3">
 
         <!-- Theme Switcher -->
         <ThemeSwitcher on:customizeBackground={handleCustomizeBackground} />
 
-        <!-- Regenerate Thumbnails Button -->
+        <!-- Regenerate Thumbnails Button (Icon Only) -->
         <button
           on:click={handleRegenerateThumbnails}
           disabled={isRegenerating}
-          class="glass-button flex items-center space-x-2 font-medium {isRegenerating ? 'opacity-50 cursor-not-allowed' : ''}"
-          title="Regenerate all thumbnails with improved lighting"
+          class="glass-button p-2.5 {isRegenerating ? 'opacity-50 cursor-not-allowed' : ''}"
+          title="{isRegenerating ? 'Regenerating thumbnails...' : 'Regenerate all thumbnails with improved lighting'}"
         >
           <svg class="w-5 h-5 {isRegenerating ? 'animate-spin' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
-          <span>{isRegenerating ? 'Regenerating...' : 'Regenerate Thumbnails'}</span>
         </button>
 
         <!-- Manage Folders Button -->

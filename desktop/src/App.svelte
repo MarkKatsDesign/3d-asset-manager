@@ -111,44 +111,39 @@
   <!-- Main Application -->
   <Navbar on:manageFolders={handleManageFolders} on:customizeBackground={handleCustomizeBackground} />
 
-  <div class="pt-24 pb-12 px-8 max-w-[1920px] mx-auto">
-    <!-- Header Section -->
-    <div class="mb-12 text-center space-y-6">
-      <div class="space-y-2">
-        <h1 class="text-5xl md:text-6xl font-bold gradient-text animate-fade-in">
-          Your 3D Assets
-        </h1>
-        <p class="text-xl {theme?.colors.textSecondary} animate-fade-in" style="animation-delay: 0.1s;">
-          Preview and organize your local 3D models
-        </p>
+  <div class="pt-20 pb-8 px-8 max-w-[1920px] mx-auto">
+    <!-- Compact Single-Line Header -->
+    <div class="mb-6 animate-fade-in">
+      <!-- Main Header Row -->
+      <div class="flex items-center justify-between gap-4 mb-4">
+        <!-- Left: Title -->
+        <div class="flex items-center gap-4 min-w-0">
+          <h1 class="text-2xl md:text-3xl font-bold gradient-text whitespace-nowrap">
+            Your 3D Assets
+          </h1>
+          <!-- Inline Stats -->
+          <div class="hidden lg:flex items-center gap-3 text-sm {theme?.colors.textMuted}">
+            <span class="glass-card px-3 py-1">
+              <span class="font-semibold gradient-text">{$localAssetStore.assets.length}</span> total
+            </span>
+            <span class="glass-card px-3 py-1">
+              <span class="font-semibold gradient-text">{localAssetStore.getFilteredAssets($localAssetStore).length}</span> filtered
+            </span>
+            <span class="glass-card px-3 py-1">
+              <span class="font-semibold gradient-text">{$folderStore.folders.length}</span> folders
+            </span>
+          </div>
+        </div>
+
+        <!-- Right: Search Bar -->
+        <div class="flex-1 max-w-md">
+          <SearchBar />
+        </div>
       </div>
 
-      <!-- Search Bar -->
-      <div class="flex justify-center animate-fade-in" style="animation-delay: 0.2s;">
-        <SearchBar />
-      </div>
-
-      <!-- Stats -->
-      <div class="flex justify-center gap-8 text-center animate-fade-in" style="animation-delay: 0.3s;">
-        <div class="glass-card px-6 py-3 inline-block">
-          <p class="text-3xl font-bold gradient-text">{$localAssetStore.assets.length}</p>
-          <p class="text-sm {theme?.colors.textMuted}">Total Assets</p>
-        </div>
-        <div class="glass-card px-6 py-3 inline-block">
-          <p class="text-3xl font-bold gradient-text">
-            {localAssetStore.getFilteredAssets($localAssetStore).length}
-          </p>
-          <p class="text-sm {theme?.colors.textMuted}">Filtered</p>
-        </div>
-        <div class="glass-card px-6 py-3 inline-block">
-          <p class="text-3xl font-bold gradient-text">{$folderStore.folders.length}</p>
-          <p class="text-sm {theme?.colors.textMuted}">Watched Folders</p>
-        </div>
-      </div>
+      <!-- Filter Toolbar Row -->
+      <FilterToolbar />
     </div>
-
-    <!-- Filter Toolbar -->
-    <FilterToolbar />
 
     <!-- Asset Grid or Grouped View -->
     {#if $localAssetStore.viewMode === 'grouped'}
