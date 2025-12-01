@@ -126,12 +126,10 @@
     {#each groupedAssets as group (group.fullPath)}
       <div class="space-y-3 animate-fade-in" style="margin-left: {group.level * 1.25}rem">
         <!-- Folder Header (Sticky) -->
-        <div
-          class="sticky top-16 z-10 flex items-center gap-3 pb-3 border-b border-white/10 cursor-pointer hover:bg-white/5 rounded-lg p-2 -mx-2 transition-colors backdrop-blur-md bg-black/40"
+        <button
+          class="sticky top-16 z-10 flex items-center gap-3 pb-3 border-b border-white/10 cursor-pointer hover:bg-white/5 rounded-lg p-2 -mx-2 transition-colors backdrop-blur-md bg-black/40 w-full text-left"
           on:click={() => toggleFolder(group.fullPath)}
-          on:keydown={(e) => e.key === 'Enter' && toggleFolder(group.fullPath)}
-          role="button"
-          tabindex="0"
+          type="button"
         >
           <!-- Expand/Collapse Icon -->
           {#if hasChildren(group) || group.assets.length > 0}
@@ -174,7 +172,7 @@
               </span>
             {/if}
           </div>
-        </div>
+        </button>
 
         <!-- Assets Grid (only shown if expanded and has assets) -->
         {#if isExpanded(group.fullPath) && group.assets.length > 0}

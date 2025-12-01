@@ -230,10 +230,18 @@ function createLocalAssetStore() {
       update(state => ({ ...state, viewMode }));
     },
 
-    toggleFolder: (folderPath) => {
+    toggleFolder: (folderPath, forceState = undefined) => {
       update(state => {
         const expandedFolders = { ...state.expandedFolders };
-        expandedFolders[folderPath] = !expandedFolders[folderPath];
+        if (forceState !== undefined) {
+          // Force to specific state (for expand/collapse all)
+          expandedFolders[folderPath] = forceState;
+        } else {
+          // Toggle: if undefined (default expanded), set to false (collapse)
+          // Otherwise, invert the current value
+          const currentState = expandedFolders[folderPath] !== false;
+          expandedFolders[folderPath] = !currentState;
+        }
         return { ...state, expandedFolders };
       });
     },
