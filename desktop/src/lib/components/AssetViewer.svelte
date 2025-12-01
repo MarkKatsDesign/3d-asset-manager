@@ -79,6 +79,11 @@
     { id: '4k', name: '4K (3840×2160)', width: 3840, height: 2160 }
   ];
 
+  // Custom thumbnail upload
+  let uploadingThumbnail = false;
+  let thumbnailUploadSuccess = false;
+  let fallbackThumbnail = null; // Store thumbnail to show when model fails
+
   /**
    * Calculate relative luminance of a color (WCAG formula)
    * Returns value between 0 (black) and 1 (white)
@@ -183,7 +188,14 @@
     };
   }
 
-  onMount(() => {
+  onMount(async () => {
+    // Load existing thumbnail (useful when model fails to load)
+    try {
+      fallbackThumbnail = await window.electronAPI.getThumbnail(asset.id);
+    } catch (error) {
+      console.log('No existing thumbnail found');
+    }
+
     initScene();
     loadModel();
 
@@ -436,6 +448,83 @@
     } finally {
       takingScreenshot = false;
     }
+  }
+
+  async function handleUploadThumbnail() {
+    // Create file input element
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/jpeg,image/png,image/webp';
+    input.style.display = 'none';
+
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      try {
+        uploadingThumbnail = true;
+        thumbnailUploadSuccess = false;
+
+        // Read file as data URL
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          const img = new Image();
+          img.onload = async () => {
+            // Create canvas to resize image to 400x400
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 400;
+            canvas.height = 400;
+
+            // Calculate scaling to cover the canvas (maintain aspect ratio)
+            const scale = Math.max(400 / img.width, 400 / img.height);
+            const scaledWidth = img.width * scale;
+            const scaledHeight = img.height * scale;
+
+            // Center the image
+            const x = (400 - scaledWidth) / 2;
+            const y = (400 - scaledHeight) / 2;
+
+            // Draw image centered and scaled
+            ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+
+            // Convert to PNG data URL
+            const thumbnailData = canvas.toDataURL('image/png');
+
+            // Save to database
+            await window.electronAPI.saveThumbnail(asset.id, thumbnailData);
+
+            // Load the thumbnail for display (in case model failed to load)
+            fallbackThumbnail = thumbnailData;
+
+            // Trigger asset update to refresh thumbnail in grid
+            localAssetStore.triggerAssetUpdate(asset.id);
+
+            // Show success feedback
+            uploadingThumbnail = false;
+            thumbnailUploadSuccess = true;
+
+            // Hide success message after 2 seconds
+            setTimeout(() => {
+              thumbnailUploadSuccess = false;
+            }, 2000);
+
+            console.log('Custom thumbnail uploaded successfully');
+          };
+
+          img.src = event.target.result;
+        };
+
+        reader.readAsDataURL(file);
+      } catch (error) {
+        console.error('Error uploading thumbnail:', error);
+        uploadingThumbnail = false;
+        alert('Failed to upload thumbnail. Please try again.');
+      }
+    };
+
+    // Trigger file picker
+    input.click();
   }
 
   function setupEnvironment() {
@@ -861,6 +950,14 @@
         throw new Error('Failed to read model file');
       }
 
+      // Check file size (prevent crashes with huge files)
+      const fileSizeMB = modelData.byteLength / (1024 * 1024);
+      const MAX_VIEWER_SIZE_MB = 500; // 500MB limit for viewer
+
+      if (fileSizeMB > MAX_VIEWER_SIZE_MB) {
+        throw new Error(`FILE_TOO_LARGE:This model is too large to preview (${fileSizeMB.toFixed(0)}MB). Maximum supported size is ${MAX_VIEWER_SIZE_MB}MB.`);
+      }
+
       // Create a blob from the buffer
       const blob = new Blob([modelData]);
       currentBlobUrl = URL.createObjectURL(blob);
@@ -986,15 +1083,16 @@
 
       // Error callback
       const onError = (err) => {
-        console.error('Error loading model:', err);
-
         // Special error message for GLTF files with external dependencies
         if (extension === '.gltf' && err.message && err.message.includes('scene.bin')) {
           error = 'GLTF files with external .bin files are not supported. Please convert to GLB format (single file with everything embedded).';
         } else if (extension === '.gltf') {
           error = 'GLTF text format with external files is not supported. Please use GLB format instead.';
+        } else if (err.message && err.message.includes('Invalid array length')) {
+          error = 'This model is too complex or large to preview. Try using a professional 3D viewer like Blender or FBX Reviewer.';
         } else {
-          error = `Failed to load 3D model (${extension} format).`;
+          console.log('Model loading error:', err.message || err);
+          error = `Failed to load 3D model (${extension} format). The file might be corrupted or use unsupported features.`;
         }
         loading = false;
       };
@@ -1047,8 +1145,13 @@
         loading = false;
       }
     } catch (err) {
-      console.error('Error getting file path:', err);
-      error = 'Failed to access local file.';
+      // Handle file size error specially
+      if (err.message && err.message.startsWith('FILE_TOO_LARGE:')) {
+        error = err.message.replace('FILE_TOO_LARGE:', '');
+      } else {
+        console.error('Error loading model:', err);
+        error = 'Failed to load model. The file might be corrupted or too complex.';
+      }
       loading = false;
     }
   }
@@ -1286,6 +1389,29 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
           </svg>
         </button>
+
+        <!-- Upload Custom Thumbnail Button -->
+        <button
+          on:click={handleUploadThumbnail}
+          disabled={uploadingThumbnail}
+          class="glass-button p-3 {uploadingThumbnail ? 'opacity-50 cursor-not-allowed' : ''} {thumbnailUploadSuccess ? 'bg-green-500/20 border-green-400' : ''}"
+          title={uploadingThumbnail ? 'Uploading...' : thumbnailUploadSuccess ? 'Thumbnail uploaded!' : 'Upload custom thumbnail'}
+        >
+          {#if uploadingThumbnail}
+            <svg class="w-5 h-5 viewer-icon-outlined animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          {:else if thumbnailUploadSuccess}
+            <svg class="w-5 h-5 viewer-icon-outlined text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          {:else}
+            <svg class="w-5 h-5 viewer-icon-outlined" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          {/if}
+        </button>
+
         <button
           on:click={onClose}
           class="glass-button p-3"
@@ -1326,11 +1452,38 @@
         {#if error}
           <div class="absolute inset-0 flex items-center justify-center">
             <div class="glass-card p-8 text-center max-w-md">
-              <svg class="w-16 h-16 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <!-- Show thumbnail if available -->
+              {#if fallbackThumbnail && !fallbackThumbnail.includes('svg+xml')}
+                <div class="mb-6">
+                  <img
+                    src={fallbackThumbnail}
+                    alt="Asset thumbnail"
+                    class="w-64 h-64 object-contain mx-auto rounded-lg border border-white/10"
+                  />
+                  <p class="text-white/40 text-xs mt-2">Custom Thumbnail</p>
+                </div>
+              {:else}
+                <svg class="w-16 h-16 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              {/if}
               <p class="text-red-400 font-semibold mb-2">Error Loading Model</p>
-              <p class="text-white/60 text-sm">{error}</p>
+              <p class="text-white/60 text-sm mb-4">{error}</p>
+
+              <!-- Tip for large files -->
+              {#if error.includes('too large') || error.includes('too complex')}
+                <div class="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg text-left">
+                  <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p class="text-blue-400 font-semibold text-sm mb-1">💡 Tip</p>
+                      <p class="text-white/70 text-xs">Upload a custom thumbnail from your professional 3D software (Blender, Maya, etc.) using the <svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> icon above.</p>
+                    </div>
+                  </div>
+                </div>
+              {/if}
             </div>
           </div>
         {/if}

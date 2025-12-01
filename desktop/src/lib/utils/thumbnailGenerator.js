@@ -62,14 +62,38 @@ function createStudioEnvironment() {
  * @param {string} filePath - The file path to determine format (optional)
  * @param {number} width - Thumbnail width
  * @param {number} height - Thumbnail height
- * @returns {Promise<string>} Base64 encoded JPEG image
+ * @param {number} maxFileSizeMB - Maximum file size in MB (default 500MB)
+ * @param {number} timeoutMs - Timeout in milliseconds (default 30s)
+ * @returns {Promise<string|null>} Base64 encoded JPEG image or null if failed
  */
-export async function generateThumbnail(assetId, filePath = '', width = 400, height = 400) {
+export async function generateThumbnail(assetId, filePath = '', width = 400, height = 400, maxFileSizeMB = 500, timeoutMs = 30000) {
+  // Suppress Three.js warnings for unsupported materials/textures
+  const originalWarn = console.warn;
+  const originalError = console.error;
+  console.warn = () => {};
+  console.error = (msg) => {
+    // Only show critical errors, suppress texture/material warnings
+    if (!msg?.toString().includes('FBXLoader') && !msg?.toString().includes('texture') && !msg?.toString().includes('material')) {
+      originalError(msg);
+    }
+  };
+
   try {
     // Read the model file
     const modelData = await window.electronAPI.readModelFile(assetId);
     if (!modelData) {
-      throw new Error('Failed to read model file');
+      console.warn = originalWarn;
+      console.error = originalError;
+      return null;
+    }
+
+    // Check file size limit (prevent memory issues with huge files)
+    const fileSizeMB = modelData.byteLength / (1024 * 1024);
+    if (fileSizeMB > maxFileSizeMB) {
+      console.log(`Skipping thumbnail for large file (${fileSizeMB.toFixed(0)}MB > ${maxFileSizeMB}MB): ${filePath}`);
+      console.warn = originalWarn;
+      console.error = originalError;
+      return null;
     }
 
     // Create a blob URL
@@ -127,9 +151,31 @@ export async function generateThumbnail(assetId, filePath = '', width = 400, hei
     // Determine file extension
     const extension = filePath ? filePath.toLowerCase().substring(filePath.lastIndexOf('.')) : '.glb';
 
-    // Load the model based on file extension
+    // Load the model based on file extension with timeout
     return new Promise((resolve, reject) => {
+      let timeoutId;
+      let hasResolved = false;
+
+      // Set up timeout
+      if (timeoutMs > 0) {
+        timeoutId = setTimeout(() => {
+          if (!hasResolved) {
+            hasResolved = true;
+            console.log(`Thumbnail generation timeout (${timeoutMs/1000}s) for: ${filePath}`);
+            URL.revokeObjectURL(blobUrl);
+            pmremGenerator.dispose();
+            renderer.dispose();
+            console.warn = originalWarn;
+            console.error = originalError;
+            resolve(null); // Return null instead of rejecting
+          }
+        }, timeoutMs);
+      }
+
       const onLoad = (loadedModel) => {
+        if (hasResolved) return; // Already timed out
+        hasResolved = true;
+        if (timeoutId) clearTimeout(timeoutId);
         // Handle different loader return types
         let model;
         if (loadedModel.scene) {
@@ -229,15 +275,31 @@ export async function generateThumbnail(assetId, filePath = '', width = 400, hei
             }
           });
 
+          // Restore console
+          console.warn = originalWarn;
+          console.error = originalError;
+
           resolve(dataUrl);
       };
 
       const onError = (error) => {
-        console.error('Error loading model for thumbnail:', error);
+        if (hasResolved) return; // Already timed out or resolved
+        hasResolved = true;
+        if (timeoutId) clearTimeout(timeoutId);
+
+        // Log error but don't show to user
+        console.log(`Failed to generate thumbnail for: ${filePath}`, error.message || error);
+
         URL.revokeObjectURL(blobUrl);
         pmremGenerator.dispose();
         renderer.dispose();
-        reject(error);
+
+        // Restore console
+        console.warn = originalWarn;
+        console.error = originalError;
+
+        // Return null instead of rejecting to allow processing to continue
+        resolve(null);
       };
 
       // Select appropriate loader based on file extension
@@ -269,11 +331,17 @@ export async function generateThumbnail(assetId, filePath = '', width = 400, hei
           onError
         );
       } else {
-        reject(new Error(`Unsupported file format: ${extension}`));
+        hasResolved = true;
+        if (timeoutId) clearTimeout(timeoutId);
+        console.warn = originalWarn;
+        console.error = originalError;
+        resolve(null);
       }
     });
   } catch (error) {
-    console.error('Error generating thumbnail:', error);
-    throw error;
+    console.warn = originalWarn;
+    console.error = originalError;
+    console.log('Error generating thumbnail:', error.message || error);
+    return null;
   }
 }

@@ -5,25 +5,98 @@
   export let onClose;
 
   let adding = false;
+  let processing = false;
+  let processingStatus = '';
+  let confirmModal = {
+    show: false,
+    title: '',
+    message: '',
+    confirmText: 'Confirm',
+    cancelText: 'Cancel',
+    onConfirm: null,
+    isDanger: false
+  };
 
   async function handleAddFolder() {
     adding = true;
+    processing = true;
+    processingStatus = 'Adding folder...';
+
     const result = await folderStore.addFolder();
     adding = false;
 
     if (result.success && !result.cancelled) {
       // Refresh assets after adding folder
+      processingStatus = 'Scanning for models...';
       await localAssetStore.loadAssets();
+
+      // Reload folder list to update counts
+      await folderStore.loadFolders();
+
+      // Wait for thumbnail generation to complete
+      processingStatus = 'Generating thumbnails...';
+
+      // Subscribe to thumbnail progress
+      const unsubscribe = localAssetStore.subscribe((state) => {
+        if (state.thumbnailProgress.isGenerating) {
+          processingStatus = `Generating thumbnails... (${state.thumbnailProgress.current}/${state.thumbnailProgress.total})`;
+        } else if (state.thumbnailProgress.total > 0) {
+          // Thumbnail generation complete
+          processing = false;
+          processingStatus = '';
+          unsubscribe();
+        }
+      });
+
+      // Fallback timeout (if no thumbnails needed)
+      setTimeout(() => {
+        if (!$localAssetStore.thumbnailProgress.isGenerating && $localAssetStore.thumbnailProgress.total === 0) {
+          processing = false;
+          processingStatus = '';
+          unsubscribe();
+        }
+      }, 2000);
+    } else {
+      processing = false;
+      processingStatus = '';
     }
   }
 
-  async function handleRemoveFolder(id) {
-    if (confirm('Remove this folder from being watched? (Assets will be removed from the library)')) {
-      const result = await folderStore.removeFolder(id);
-      if (result.success) {
-        await localAssetStore.loadAssets();
-      }
+  function showConfirmModal(title, message, onConfirm, isDanger = false) {
+    confirmModal = {
+      show: true,
+      title,
+      message,
+      confirmText: isDanger ? 'Remove' : 'Confirm',
+      cancelText: 'Cancel',
+      onConfirm,
+      isDanger
+    };
+  }
+
+  function closeConfirmModal() {
+    confirmModal.show = false;
+  }
+
+  async function handleConfirm() {
+    if (confirmModal.onConfirm) {
+      await confirmModal.onConfirm();
     }
+    closeConfirmModal();
+  }
+
+  async function handleRemoveFolder(id) {
+    showConfirmModal(
+      'Remove Folder?',
+      'This folder will be removed from your library. Your files won\'t be deleted from your computer.',
+      async () => {
+        const result = await folderStore.removeFolder(id);
+        if (result.success) {
+          await localAssetStore.loadAssets();
+        }
+      },
+      true
+    );
   }
 
   async function handleToggleFolder(id, enabled) {
@@ -62,7 +135,7 @@
   <div class="modal-content" role="dialog" aria-modal="true">
     <!-- Header -->
     <div class="modal-header">
-      <h2 class="text-3xl font-bold gradient-text">Manage Watched Folders</h2>
+      <h2 class="text-3xl font-bold gradient-text">Your 3D Folders</h2>
       <button on:click={onClose} class="close-button">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -72,9 +145,14 @@
 
     <!-- Content -->
     <div class="modal-body">
-      <p class="text-white/70 mb-6">
-        Add folders containing 3D models to automatically discover and preview them.
-        Supported formats: GLB, OBJ, FBX, STL
+      <p class="text-white/80 mb-2 text-base">
+        Add folders to automatically organize your 3D models. We'll scan for GLB, GLTF, OBJ, FBX, and STL files.
+      </p>
+      <p class="text-white/50 text-sm mb-6 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        All subfolders are automatically included
       </p>
 
       <!-- Add Folder Button -->
@@ -88,6 +166,23 @@
         </svg>
         {adding ? 'Adding...' : 'Add Folder'}
       </button>
+
+      <!-- Processing Status -->
+      {#if processing && processingStatus}
+        <div class="processing-status glass-card p-4 mb-6 flex items-center gap-3">
+          <div class="loading-spinner-small"></div>
+          <div class="flex-1">
+            <p class="text-white/90 font-medium">{processingStatus}</p>
+            <p class="text-white/50 text-sm mt-1">
+              {#if processingStatus.includes('Scanning')}
+                Finding all 3D models in folder and subfolders...
+              {:else if processingStatus.includes('thumbnails')}
+                This may take a while for large or complex models. Thumbnails will appear as they're ready.
+              {/if}
+            </p>
+          </div>
+        </div>
+      {/if}
 
       <!-- Folders List -->
       {#if $folderStore.loading}
@@ -111,27 +206,43 @@
                 <!-- Enable/Disable Toggle -->
                 <button
                   on:click={() => handleToggleFolder(folder.id, folder.enabled)}
-                  class="mt-1"
-                  title={folder.enabled ? 'Disable watching' : 'Enable watching'}
+                  class="mt-1 p-1 rounded-lg transition-colors {folder.enabled ? 'hover:bg-green-500/10' : 'hover:bg-gray-500/10'}"
+                  title={folder.enabled ? 'Click to hide this folder' : 'Click to show this folder'}
                 >
                   {#if folder.enabled}
-                    <svg class="w-6 h-6 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    <!-- Eye open (visible) -->
+                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
                   {:else}
-                    <svg class="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    <!-- Eye closed (hidden) -->
+                    <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
                     </svg>
                   {/if}
                 </button>
 
                 <div class="flex-1 min-w-0">
-                  <p class="font-mono text-sm text-white/90 truncate" title={folder.path}>
+                  <p class="text-base font-medium text-white/95 truncate mb-1" title={folder.path}>
+                    {folder.path.split(/[/\\]/).pop() || folder.path}
+                  </p>
+                  <p class="font-mono text-xs text-white/40 truncate mb-2" title={folder.path}>
                     {folder.path}
                   </p>
-                  <div class="flex gap-4 mt-1 text-xs text-white/50">
-                    <span>{folder.assetCount || 0} assets</span>
-                    <span>Last scanned: {formatDate(folder.lastScanned)}</span>
+                  <div class="flex flex-wrap gap-3 text-xs text-white/60">
+                    <span class="flex items-center gap-1">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                      {folder.assetCount || 0} models
+                    </span>
+                    <span class="flex items-center gap-1">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      {formatDate(folder.lastScanned)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -166,6 +277,31 @@
       {/if}
     </div>
   </div>
+
+  <!-- Confirmation Modal -->
+  {#if confirmModal.show}
+    <div class="confirm-overlay" on:click={closeConfirmModal} role="presentation">
+      <div class="confirm-modal" on:click|stopPropagation role="dialog" aria-modal="true">
+        <div class="confirm-header">
+          <h3 class="text-xl font-bold text-white">{confirmModal.title}</h3>
+        </div>
+        <div class="confirm-body">
+          <p class="text-white/80">{confirmModal.message}</p>
+        </div>
+        <div class="confirm-actions">
+          <button on:click={closeConfirmModal} class="btn-secondary">
+            {confirmModal.cancelText}
+          </button>
+          <button
+            on:click={handleConfirm}
+            class="btn-primary {confirmModal.isDanger ? 'btn-danger' : ''}"
+          >
+            {confirmModal.confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -262,9 +398,110 @@
     margin: 0 auto;
   }
 
+  .loading-spinner-small {
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #6366f1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    flex-shrink: 0;
+  }
+
+  .processing-status {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+    border-color: rgba(99, 102, 241, 0.3);
+  }
+
   @keyframes spin {
     to {
       transform: rotate(360deg);
+    }
+  }
+
+  /* Confirmation Modal Styles */
+  .confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  .confirm-modal {
+    background: linear-gradient(135deg, rgba(26, 26, 46, 0.98) 0%, rgba(15, 15, 30, 0.98) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 1rem;
+    max-width: 450px;
+    width: 90%;
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.6);
+    animation: slideUp 0.2s ease-out;
+  }
+
+  .confirm-header {
+    padding: 1.5rem 1.5rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .confirm-body {
+    padding: 1.5rem;
+  }
+
+  .confirm-actions {
+    padding: 1rem 1.5rem 1.5rem;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+  }
+
+  .btn-secondary {
+    padding: 0.625rem 1.25rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 0.5rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+
+  .btn-danger {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+    border-color: rgba(220, 38, 38, 0.5) !important;
+  }
+
+  .btn-danger:hover {
+    background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%) !important;
+    border-color: rgba(220, 38, 38, 0.7) !important;
+    transform: translateY(-1px);
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
     }
   }
 </style>

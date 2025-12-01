@@ -11,7 +11,8 @@ function createLocalAssetStore() {
     sortBy: 'date-desc',
     selectedFileTypes: [],
     viewMode: 'grid', // 'grid' or 'grouped'
-    expandedFolders: {} // Track which folders are expanded (path -> boolean)
+    expandedFolders: {}, // Track which folders are expanded (path -> boolean)
+    thumbnailProgress: { current: 0, total: 0, isGenerating: false } // Track thumbnail generation
   });
 
   let unsubscribeAdded = null;
@@ -65,27 +66,53 @@ function createLocalAssetStore() {
     },
 
     generateMissingThumbnails: async (assets) => {
-      // Generate thumbnails in the background
+      // Count assets that need thumbnails
+      const assetsNeedingThumbnails = [];
+
       for (const asset of assets) {
+        const existingThumbnail = await window.electronAPI.getThumbnail(asset.id);
+        if (!existingThumbnail || existingThumbnail.includes('svg+xml')) {
+          assetsNeedingThumbnails.push(asset);
+        }
+      }
+
+      if (assetsNeedingThumbnails.length === 0) return;
+
+      // Update progress
+      update(state => ({
+        ...state,
+        thumbnailProgress: { current: 0, total: assetsNeedingThumbnails.length, isGenerating: true }
+      }));
+
+      // Generate thumbnails in the background
+      let completed = 0;
+      for (const asset of assetsNeedingThumbnails) {
         try {
-          // Check if thumbnail exists
-          const existingThumbnail = await window.electronAPI.getThumbnail(asset.id);
-
-          // Skip if thumbnail exists and is not an SVG placeholder
-          if (existingThumbnail && !existingThumbnail.includes('svg+xml')) {
-            continue;
-          }
-
           // Generate thumbnail
           const thumbnailData = await generateThumbnail(asset.id, asset.filePath);
 
-          // Save to database
-          await window.electronAPI.saveThumbnail(asset.id, thumbnailData);
+          // Save to database if generation succeeded
+          if (thumbnailData) {
+            await window.electronAPI.saveThumbnail(asset.id, thumbnailData);
+          }
         } catch (error) {
-          console.error(`Error generating thumbnail for asset ${asset.id}:`, error);
+          console.log(`Skipped thumbnail for asset ${asset.id}`);
           // Continue with other assets even if one fails
         }
+
+        // Update progress
+        completed++;
+        update(state => ({
+          ...state,
+          thumbnailProgress: { current: completed, total: assetsNeedingThumbnails.length, isGenerating: true }
+        }));
       }
+
+      // Mark as complete
+      update(state => ({
+        ...state,
+        thumbnailProgress: { current: completed, total: assetsNeedingThumbnails.length, isGenerating: false }
+      }));
     },
 
     regenerateAllThumbnails: async () => {
@@ -398,6 +425,15 @@ function createLocalAssetStore() {
       });
 
       return result;
+    },
+
+    triggerAssetUpdate: (assetId) => {
+      // Force a reactive update by creating a new assets array
+      // This will trigger any components subscribed to the store to re-render
+      update(state => ({
+        ...state,
+        assets: [...state.assets]
+      }));
     },
 
     cleanup: () => {
