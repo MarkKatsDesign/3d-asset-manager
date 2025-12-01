@@ -214,6 +214,21 @@
     border: 1px solid rgba(0, 0, 0, 0.1);
   }
 
+  /* Breadcrumb background for Arctic theme */
+  body[data-theme="arctic"] .bg-black\/60 {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-color: rgba(0, 0, 0, 0.15) !important;
+  }
+
+  /* Breadcrumb text for Arctic theme */
+  body[data-theme="arctic"] .text-white\/90 {
+    color: rgb(17, 24, 39) !important; /* gray-900 - dark text */
+  }
+
+  body[data-theme="arctic"] .text-white\/50 {
+    color: rgb(107, 114, 128) !important; /* gray-500 - for icons */
+  }
+
   /* Folder badge - keep text white for Arctic theme */
   body[data-theme="arctic"] .bg-purple-600.text-white {
     color: white !important;

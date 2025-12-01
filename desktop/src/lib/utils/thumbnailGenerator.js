@@ -37,13 +37,13 @@ function createStudioEnvironment() {
     const fillLight2 = Math.max(0, Math.cos(theta - Math.PI * 0.5) * Math.sin(phi)) * 0.4;
 
     // Combine all light sources
-    let brightness = (topBrightness * 0.9 + keyLight + fillLight1 + fillLight2);
-    brightness = Math.min(1, brightness + 0.3); // Add ambient + clamp
+    let brightness = (topBrightness * 0.6 + keyLight * 0.8 + fillLight1 * 0.7 + fillLight2 * 0.7);
+    brightness = Math.min(1, brightness + 0.15); // Add modest ambient + clamp
 
-    // Very bright, neutral color (slight warm tint)
-    const r = Math.floor(brightness * 255);
-    const g = Math.floor(brightness * 252);
-    const b = Math.floor(brightness * 248);
+    // Neutral color with slightly cool tint for better contrast
+    const r = Math.floor(brightness * 250);
+    const g = Math.floor(brightness * 250);
+    const b = Math.floor(brightness * 255);
 
     data[stride] = r;
     data[stride + 1] = g;
@@ -91,7 +91,7 @@ export async function generateThumbnail(assetId, filePath = '', width = 400, hei
     renderer.setClearColor(0x000000, 0); // Transparent background
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.8; // Increase exposure for brighter thumbnails
+    renderer.toneMappingExposure = 1.0; // Balanced exposure for natural lighting
 
     // Create scene
     const scene = new THREE.Scene();
@@ -115,13 +115,12 @@ export async function generateThumbnail(assetId, filePath = '', width = 400, hei
     // Dispose the temporary texture
     envMapTexture.dispose();
 
-    // Add supplementary lights for extra brightness and definition
-    // Reduced intensity since environment map provides base lighting
-    const keyLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    // Add subtle supplementary lights for definition (environment map provides main lighting)
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.3);
     keyLight.position.set(5, 8, 5);
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.15);
     fillLight.position.set(-5, 3, 5);
     scene.add(fillLight);
 
@@ -163,15 +162,15 @@ export async function generateThumbnail(assetId, filePath = '', width = 400, hei
                 // Check if material lacks textures
                 const hasTextures = mat.map || mat.normalMap || mat.roughnessMap || mat.metalnessMap || mat.aoMap;
 
-                // If no textures, replace with a nice matte metal material
+                // If no textures, replace with a balanced material for better contrast
                 if (!hasTextures) {
-                  const color = mat.color || new THREE.Color(0x444444);
+                  const color = mat.color || new THREE.Color(0x666666);
 
                   const enhancedMaterial = new THREE.MeshStandardMaterial({
                     color: color,
-                    metalness: 0.7,
-                    roughness: 0.3,
-                    envMapIntensity: 1.2,
+                    metalness: 0.4,
+                    roughness: 0.5,
+                    envMapIntensity: 0.8,
                     flatShading: false
                   });
 
@@ -258,10 +257,10 @@ export async function generateThumbnail(assetId, filePath = '', width = 400, hei
           (geometry) => {
             // STL returns geometry, need to create mesh
             const material = new THREE.MeshStandardMaterial({
-              color: 0x444444,      // Dark gray
-              metalness: 0.7,       // More metallic
-              roughness: 0.3,       // Smoother matte finish
-              envMapIntensity: 1.2
+              color: 0x666666,      // Medium gray for better contrast
+              metalness: 0.4,       // Balanced metalness
+              roughness: 0.5,       // Balanced roughness
+              envMapIntensity: 0.8  // Reduced reflection intensity
             });
             const mesh = new THREE.Mesh(geometry, material);
             onLoad(mesh);
