@@ -21,6 +21,7 @@
   let error = null;
   let gridHelper;
   let currentBlobUrl = null;
+  let currentModelGroup = null; // Track the loaded model for proper disposal
   let isGeometryOnlyFormat = false; // Tracks if current format doesn't support textures
 
   // Environment controls
@@ -717,18 +718,24 @@
       texture.wrapS = THREE.RepeatWrapping;
       texture.wrapT = THREE.ClampToEdgeWrapping;
 
-      // Store the original texture for screenshot regeneration
-      originalHDRITexture = texture.clone();
-      originalHDRITexture.wrapS = THREE.RepeatWrapping;
-      originalHDRITexture.wrapT = THREE.ClampToEdgeWrapping;
-
-      // Dispose of old environment map if it exists
+      // Dispose of old textures BEFORE creating new ones to prevent memory leaks
+      if (originalHDRITexture && originalHDRITexture.dispose) {
+        originalHDRITexture.dispose();
+      }
+      if (environmentTexture && environmentTexture.dispose) {
+        environmentTexture.dispose();
+      }
       if (scene.environment && scene.environment.dispose) {
         scene.environment.dispose();
       }
       if (customHDRI && customHDRI.dispose) {
         customHDRI.dispose();
       }
+
+      // Store the original texture for screenshot regeneration
+      originalHDRITexture = texture.clone();
+      originalHDRITexture.wrapS = THREE.RepeatWrapping;
+      originalHDRITexture.wrapT = THREE.ClampToEdgeWrapping;
 
       // Store texture for rotation
       environmentTexture = texture;
@@ -867,6 +874,28 @@
 
       // Helper function to process and add model to scene
       const processModel = (model) => {
+        // CRITICAL: Dispose of old model before loading new one to prevent memory leaks
+        if (currentModelGroup) {
+          // Remove from scene
+          scene.remove(currentModelGroup);
+
+          // Dispose of geometries and materials
+          currentModelGroup.traverse((child) => {
+            if (child.geometry) {
+              child.geometry.dispose();
+            }
+            if (child.material) {
+              if (Array.isArray(child.material)) {
+                child.material.forEach(mat => mat.dispose());
+              } else {
+                child.material.dispose();
+              }
+            }
+          });
+
+          currentModelGroup = null;
+        }
+
         // Center and scale model
         const box = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
@@ -925,6 +954,9 @@
         });
 
         scene.add(modelGroup);
+
+        // Store reference to current model for future disposal
+        currentModelGroup = modelGroup;
 
         // Calculate model statistics
         modelStats = calculateModelStats(model);
@@ -1061,6 +1093,24 @@
     if (currentBlobUrl) {
       URL.revokeObjectURL(currentBlobUrl);
       currentBlobUrl = null;
+    }
+
+    // Dispose of current model
+    if (currentModelGroup) {
+      scene.remove(currentModelGroup);
+      currentModelGroup.traverse((child) => {
+        if (child.geometry) {
+          child.geometry.dispose();
+        }
+        if (child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach(mat => mat.dispose());
+          } else {
+            child.material.dispose();
+          }
+        }
+      });
+      currentModelGroup = null;
     }
 
     // Dispose of environment textures
@@ -1296,74 +1346,131 @@
 
         <!-- Environment Controls and Notes -->
         <div class="absolute bottom-4 right-4 flex flex-col items-end gap-2">
-          <!-- Auto-Rotate Button -->
-          <button
-            on:click={() => { autoRotate = !autoRotate; showRotationControls = !showRotationControls; }}
-            class="p-3 transition-all duration-300 {autoRotate ? 'bg-indigo-500/30 border-indigo-400' : ''} {isLightBackground && !transparentBackground ? 'glass-button-light' : 'glass-button'}"
-            title={autoRotate ? 'Stop auto-rotation' : 'Start auto-rotation'}
-          >
-            <svg class="w-5 h-5 viewer-icon-outlined {autoRotate ? 'animate-spin' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation-duration: 3s;">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
+          <!-- Auto-Rotate Button with Panel -->
+          <div class="relative flex items-end">
+            <button
+              on:click={() => {
+                autoRotate = !autoRotate;
+                showRotationControls = !showRotationControls;
+                if (showRotationControls) {
+                  showControls = false;
+                  showNotes = false;
+                }
+              }}
+              class="p-3 transition-all duration-300 {autoRotate ? 'bg-indigo-500/30 border-indigo-400' : ''} {isLightBackground && !transparentBackground ? 'glass-button-light' : 'glass-button'}"
+              title={autoRotate ? 'Stop auto-rotation' : 'Start auto-rotation'}
+            >
+              <svg class="w-5 h-5 viewer-icon-outlined {autoRotate ? 'animate-spin' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="animation-duration: 3s;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
 
-          <!-- Rotation Controls Panel -->
-          {#if showRotationControls && autoRotate}
-            <div class="p-4 space-y-3 w-64 animate-slide-up transition-all duration-300 {isDarkCard ? 'glass-card-light' : 'glass-card'}">
-              <h3 class="font-semibold text-sm gradient-text">Rotation Speed</h3>
+            <!-- Rotation Controls Panel (Absolutely Positioned) -->
+            {#if showRotationControls && autoRotate}
+              <div class="absolute bottom-full right-0 mb-2 p-4 space-y-3 w-64 max-h-[calc(100vh-180px)] overflow-y-auto custom-scrollbar animate-slide-up transition-all duration-300 {isDarkCard ? 'glass-card-light' : 'glass-card'}">
+                <h3 class="font-semibold text-sm gradient-text">Rotation Speed</h3>
 
-              <!-- Speed Slider -->
-              <div class="space-y-2">
-                <div class="flex items-center justify-between">
-                  <label for="rotation-speed" class="text-sm {isDarkCard ? 'text-white' : 'text-white/80'}">Speed</label>
-                  <span class="text-xs {isDarkCard ? 'text-white' : 'text-white/60'}">{rotationSpeed.toFixed(2)}°/frame</span>
+                <!-- Speed Slider -->
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <label for="rotation-speed" class="text-sm {isDarkCard ? 'text-white' : 'text-white/80'}">Speed</label>
+                    <span class="text-xs {isDarkCard ? 'text-white' : 'text-white/60'}">{rotationSpeed.toFixed(2)}°/frame</span>
+                  </div>
+                  <input
+                    id="rotation-speed"
+                    type="range"
+                    min="0.05"
+                    max="2.0"
+                    step="0.05"
+                    bind:value={rotationSpeed}
+                    class="w-full h-2 rounded-lg appearance-none cursor-pointer slider {isDarkCard ? 'slider-dark bg-gray-400' : 'bg-white/20'}"
+                  />
+                  <div class="flex justify-between text-xs {isDarkCard ? 'text-white/70' : 'text-white/50'}">
+                    <span>Slow</span>
+                    <span>Fast</span>
+                  </div>
                 </div>
-                <input
-                  id="rotation-speed"
-                  type="range"
-                  min="0.05"
-                  max="2.0"
-                  step="0.05"
-                  bind:value={rotationSpeed}
-                  class="w-full h-2 rounded-lg appearance-none cursor-pointer slider {isDarkCard ? 'slider-dark bg-gray-400' : 'bg-white/20'}"
-                />
-                <div class="flex justify-between text-xs {isDarkCard ? 'text-white/70' : 'text-white/50'}">
-                  <span>Slow</span>
-                  <span>Fast</span>
+
+                <div class="pt-2 border-t {isDarkCard ? 'border-white/20' : 'border-white/10'}">
+                  <p class="text-xs {isDarkCard ? 'text-white/90' : 'text-white/50'}">Adjust rotation speed for the perfect showcase</p>
+                </div>
+              </div>
+            {/if}
+          </div>
+
+          <!-- Notes Button with Panel -->
+          <div class="relative flex items-end">
+            <button
+              on:click={() => {
+                showNotes = !showNotes;
+                if (showNotes) {
+                  showControls = false;
+                  showRotationControls = false;
+                }
+              }}
+              class="p-3 transition-all duration-300 {isLightBackground && !transparentBackground ? 'glass-button-light' : 'glass-button'}"
+              title="Notes"
+            >
+              <svg class="w-5 h-5 viewer-icon-outlined" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+
+            <!-- Notes Panel (Absolutely Positioned) -->
+            {#if showNotes}
+            <div class="absolute bottom-full right-0 mb-2 w-64 p-4 space-y-3 max-h-[calc(100vh-180px)] overflow-y-auto custom-scrollbar animate-slide-up transition-all duration-300 {isDarkCard ? 'glass-card-light' : 'glass-card'}">
+              <!-- Header -->
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                  <svg class="w-4 h-4 {isDarkCard ? 'text-white' : 'text-white/80'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  <h3 class="font-semibold text-sm gradient-text">Notes</h3>
+                </div>
+                <div class="flex items-center space-x-2">
+                  {#if savingNotes}
+                    <span class="text-xs {isDarkCard ? 'text-white' : 'text-white/50'}">Saving...</span>
+                  {:else if notesSaved}
+                    <span class="text-xs text-green-400">Saved</span>
+                  {/if}
                 </div>
               </div>
 
-              <div class="pt-2 border-t {isDarkCard ? 'border-white/20' : 'border-white/10'}">
-                <p class="text-xs {isDarkCard ? 'text-white/90' : 'text-white/50'}">Adjust rotation speed for the perfect showcase</p>
+              <!-- Notes Content -->
+              <div class="space-y-2">
+                <textarea
+                  bind:value={description}
+                  on:input={handleNotesInput}
+                  placeholder="Add notes or description for this model..."
+                  class="w-full h-48 px-3 py-2 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all bg-white/90 text-gray-900 placeholder-gray-500 border border-gray-300"
+                ></textarea>
+                <p class="text-xs {isDarkCard ? 'text-white/90' : 'text-white/40'}">Changes save automatically</p>
               </div>
             </div>
-          {/if}
+            {/if}
+          </div>
 
-          <!-- Notes Button -->
-          <button
-            on:click={() => showNotes = !showNotes}
-            class="p-3 transition-all duration-300 {isLightBackground && !transparentBackground ? 'glass-button-light' : 'glass-button'}"
-            title="Notes"
-          >
-            <svg class="w-5 h-5 viewer-icon-outlined" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-          </button>
+          <!-- Environment Button with Panel -->
+          <div class="relative flex items-end">
+            <button
+              on:click={() => {
+                showControls = !showControls;
+                if (showControls) {
+                  showNotes = false;
+                  showRotationControls = false;
+                }
+              }}
+              class="p-3 transition-all duration-300 {isLightBackground && !transparentBackground ? 'glass-button-light' : 'glass-button'}"
+              title="Environment settings"
+            >
+              <svg class="w-5 h-5 viewer-icon-outlined" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            </button>
 
-          <!-- Environment Button -->
-          <button
-            on:click={() => showControls = !showControls}
-            class="p-3 transition-all duration-300 {isLightBackground && !transparentBackground ? 'glass-button-light' : 'glass-button'}"
-            title="Environment settings"
-          >
-            <svg class="w-5 h-5 viewer-icon-outlined" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          </button>
-
-          {#if showControls}
-            <!-- Environment Controls Card -->
-            <div class="p-4 space-y-4 w-64 animate-slide-up transition-all duration-300 {isDarkCard ? 'glass-card-light' : 'glass-card'}">
+            {#if showControls}
+              <!-- Environment Controls Card (Absolutely Positioned) -->
+              <div class="absolute bottom-full right-0 mb-2 p-4 space-y-4 w-64 max-h-[calc(100vh-180px)] overflow-y-auto custom-scrollbar animate-slide-up transition-all duration-300 {isDarkCard ? 'glass-card-light' : 'glass-card'}">
               <h3 class="font-semibold text-sm gradient-text">Environment</h3>
 
               <!-- Environment Toggle -->
@@ -1559,44 +1666,12 @@
                 </div>
               {/if}
 
-              <div class="pt-2 border-t {isDarkCard ? 'border-white/20' : 'border-white/10'}">
-                <p class="text-xs {isDarkCard ? 'text-white/90' : 'text-white/50'}">Environment map provides realistic lighting and reflections</p>
+                <div class="pt-2 border-t {isDarkCard ? 'border-white/20' : 'border-white/10'}">
+                  <p class="text-xs {isDarkCard ? 'text-white/90' : 'text-white/50'}">Environment map provides realistic lighting and reflections</p>
+                </div>
               </div>
-            </div>
-          {/if}
-
-          <!-- Notes Section (Independent) -->
-          {#if showNotes}
-          <div class="w-64 p-4 space-y-3 animate-slide-up transition-all duration-300 {isDarkCard ? 'glass-card-light' : 'glass-card'}">
-            <!-- Header -->
-            <div class="flex items-center justify-between">
-              <div class="flex items-center space-x-2">
-                <svg class="w-4 h-4 {isDarkCard ? 'text-white' : 'text-white/80'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                <h3 class="font-semibold text-sm gradient-text">Notes</h3>
-              </div>
-              <div class="flex items-center space-x-2">
-                {#if savingNotes}
-                  <span class="text-xs {isDarkCard ? 'text-white' : 'text-white/50'}">Saving...</span>
-                {:else if notesSaved}
-                  <span class="text-xs text-green-400">Saved</span>
-                {/if}
-              </div>
-            </div>
-
-            <!-- Notes Content -->
-            <div class="space-y-2">
-              <textarea
-                bind:value={description}
-                on:input={handleNotesInput}
-                placeholder="Add notes or description for this model..."
-                class="w-full h-48 px-3 py-2 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all bg-white/90 text-gray-900 placeholder-gray-500 border border-gray-300"
-              ></textarea>
-              <p class="text-xs {isDarkCard ? 'text-white/90' : 'text-white/40'}">Changes save automatically</p>
-            </div>
+            {/if}
           </div>
-          {/if}
         </div>
       {/if}
     </div>
