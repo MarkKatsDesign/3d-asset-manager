@@ -10,7 +10,8 @@ function createLocalAssetStore() {
     selectedTags: [],
     sortBy: 'date-desc',
     selectedFileTypes: [],
-    viewMode: 'grid' // 'grid' or 'grouped'
+    viewMode: 'grid', // 'grid' or 'grouped'
+    expandedFolders: {} // Track which folders are expanded (path -> boolean)
   });
 
   let unsubscribeAdded = null;
@@ -229,6 +230,14 @@ function createLocalAssetStore() {
       update(state => ({ ...state, viewMode }));
     },
 
+    toggleFolder: (folderPath) => {
+      update(state => {
+        const expandedFolders = { ...state.expandedFolders };
+        expandedFolders[folderPath] = !expandedFolders[folderPath];
+        return { ...state, expandedFolders };
+      });
+    },
+
     getFilteredAssets: (state) => {
       let filtered = [...state.assets];
 
@@ -289,32 +298,98 @@ function createLocalAssetStore() {
 
     getGroupedAssets: (state) => {
       const filtered = store.getFilteredAssets(state);
-      const groups = {};
+      const folderMap = {};
 
+      // Build a map of all folder paths and their assets
       filtered.forEach(asset => {
-        // Extract folder path from file path
         const pathParts = asset.filePath.split(/[/\\]/);
 
-        // Get the parent folder (last folder before filename)
-        let folderKey = 'Root';
-        if (pathParts.length > 2) {
-          // Get last 2 folders for grouping
-          const folders = pathParts.slice(-3, -1);
-          folderKey = folders.join('/');
-        }
+        // Get all folder parts (exclude the filename)
+        const folderParts = pathParts.slice(0, -1);
 
-        if (!groups[folderKey]) {
-          groups[folderKey] = {
-            name: folderKey,
-            assets: []
-          };
-        }
+        if (folderParts.length === 0) {
+          // File in root
+          if (!folderMap['Root']) {
+            folderMap['Root'] = {
+              name: 'Root',
+              fullPath: 'Root',
+              level: 0,
+              assets: [],
+              children: {}
+            };
+          }
+          folderMap['Root'].assets.push(asset);
+        } else {
+          // Build the folder hierarchy
+          for (let i = 0; i < folderParts.length; i++) {
+            const currentPath = folderParts.slice(0, i + 1).join('/');
+            const parentPath = i > 0 ? folderParts.slice(0, i).join('/') : null;
+            const folderName = folderParts[i];
 
-        groups[folderKey].assets.push(asset);
+            if (!folderMap[currentPath]) {
+              folderMap[currentPath] = {
+                name: folderName,
+                fullPath: currentPath,
+                level: i,
+                assets: [],
+                children: {},
+                parentPath: parentPath
+              };
+            }
+          }
+
+          // Add asset to its immediate parent folder
+          const assetFolderPath = folderParts.join('/');
+          folderMap[assetFolderPath].assets.push(asset);
+        }
       });
 
-      // Convert to array and sort by folder name
-      return Object.values(groups).sort((a, b) => a.name.localeCompare(b.name));
+      // Build the tree structure
+      const tree = {};
+      Object.keys(folderMap).forEach(path => {
+        const folder = folderMap[path];
+        if (!folder.parentPath) {
+          // Root-level folder
+          tree[path] = folder;
+        } else {
+          // Add as child to parent
+          const parent = folderMap[folder.parentPath];
+          if (parent) {
+            parent.children[path] = folder;
+          }
+        }
+      });
+
+      // Flatten the tree into a sorted hierarchical list
+      const flattenTree = (node, result = []) => {
+        result.push(node);
+
+        // Sort children by name
+        const childKeys = Object.keys(node.children).sort((a, b) => {
+          return folderMap[a].name.localeCompare(folderMap[b].name);
+        });
+
+        // Add children if folder is expanded
+        if (state.expandedFolders[node.fullPath] !== false) {
+          childKeys.forEach(key => {
+            flattenTree(node.children[key], result);
+          });
+        }
+
+        return result;
+      };
+
+      // Sort root folders and flatten
+      const rootFolders = Object.keys(tree).sort((a, b) => {
+        return folderMap[a].name.localeCompare(folderMap[b].name);
+      });
+
+      const result = [];
+      rootFolders.forEach(key => {
+        flattenTree(tree[key], result);
+      });
+
+      return result;
     },
 
     cleanup: () => {

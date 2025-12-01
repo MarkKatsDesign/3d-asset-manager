@@ -16,6 +16,26 @@
       localAssetStore.deleteAsset(event.detail.id);
     }
   }
+
+  function toggleFolder(folderPath) {
+    localAssetStore.toggleFolder(folderPath);
+  }
+
+  function isExpanded(folderPath) {
+    return $localAssetStore.expandedFolders[folderPath] !== false;
+  }
+
+  function hasChildren(folder) {
+    return Object.keys(folder.children || {}).length > 0;
+  }
+
+  function getTotalAssets(folder) {
+    let total = folder.assets.length;
+    Object.values(folder.children || {}).forEach(child => {
+      total += getTotalAssets(child);
+    });
+    return total;
+  }
 </script>
 
 <div class="w-full space-y-8">
@@ -65,44 +85,81 @@
     </div>
   {:else}
     <!-- Grouped Asset Grid -->
-    {#each groupedAssets as group (group.name)}
-      <div class="space-y-4 animate-fade-in">
+    {#each groupedAssets as group (group.fullPath)}
+      <div class="space-y-4 animate-fade-in" style="margin-left: {group.level * 2}rem">
         <!-- Folder Header -->
-        <div class="flex items-center gap-3 pb-3 border-b border-white/10">
+        <div
+          class="flex items-center gap-3 pb-3 border-b border-white/10 cursor-pointer hover:bg-white/5 rounded-lg p-2 -mx-2 transition-colors"
+          on:click={() => toggleFolder(group.fullPath)}
+          on:keydown={(e) => e.key === 'Enter' && toggleFolder(group.fullPath)}
+          role="button"
+          tabindex="0"
+        >
+          <!-- Expand/Collapse Icon -->
+          {#if hasChildren(group) || group.assets.length > 0}
+            <div class="w-6 h-6 flex items-center justify-center text-white/60">
+              {#if isExpanded(group.fullPath)}
+                <!-- Expanded Icon (chevron down) -->
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              {:else}
+                <!-- Collapsed Icon (chevron right) -->
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              {/if}
+            </div>
+          {:else}
+            <div class="w-6 h-6"></div>
+          {/if}
+
+          <!-- Folder Icon -->
           <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-600/20 flex items-center justify-center">
             <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
             </svg>
           </div>
-          <div>
+
+          <!-- Folder Info -->
+          <div class="flex-1">
             <h3 class="text-xl font-bold text-white">
               {group.name}
             </h3>
             <p class="text-sm text-white/50">
-              {group.assets.length} {group.assets.length === 1 ? 'asset' : 'assets'}
+              {#if hasChildren(group)}
+                {getTotalAssets(group)} total {getTotalAssets(group) === 1 ? 'asset' : 'assets'}
+                {#if group.assets.length > 0}
+                  ({group.assets.length} in this folder)
+                {/if}
+              {:else}
+                {group.assets.length} {group.assets.length === 1 ? 'asset' : 'assets'}
+              {/if}
             </p>
           </div>
         </div>
 
-        <!-- Assets Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-          {#each group.assets as asset (asset.id)}
-            <AssetCard
-              {asset}
-              on:view={handleView}
-              on:delete={handleDelete}
-            />
-          {/each}
-        </div>
+        <!-- Assets Grid (only shown if expanded and has assets) -->
+        {#if isExpanded(group.fullPath) && group.assets.length > 0}
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+            {#each group.assets as asset (asset.id)}
+              <AssetCard
+                {asset}
+                on:view={handleView}
+                on:delete={handleDelete}
+              />
+            {/each}
+          </div>
+        {/if}
       </div>
     {/each}
 
     <!-- Total Count -->
     <div class="mt-8 text-center text-white/50 text-sm">
       {#if groupedAssets.length === 1}
-        1 folder • {groupedAssets[0].assets.length} {groupedAssets[0].assets.length === 1 ? 'asset' : 'assets'}
+        1 folder • {getTotalAssets(groupedAssets[0])} {getTotalAssets(groupedAssets[0]) === 1 ? 'asset' : 'assets'}
       {:else}
-        {groupedAssets.length} folders • {groupedAssets.reduce((sum, g) => sum + g.assets.length, 0)} total assets
+        {groupedAssets.length} folders • {groupedAssets.reduce((sum, g) => sum + getTotalAssets(g), 0)} total assets
       {/if}
     </div>
   {/if}
