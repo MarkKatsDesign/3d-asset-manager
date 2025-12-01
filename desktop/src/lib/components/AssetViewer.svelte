@@ -212,15 +212,15 @@
     // Scene
     scene = new THREE.Scene();
     updateSceneBackground();
-    // Reduce fog or remove it to ensure model visibility
-    scene.fog = new THREE.Fog(0x2a2a3e, 20, 100);
+    // Disable fog to allow free navigation inside models
+    // scene.fog = new THREE.Fog(0x2a2a3e, 20, 100);
 
     // Camera
     camera = new THREE.PerspectiveCamera(
       50,
       container.clientWidth / container.clientHeight,
-      0.1,
-      1000
+      0.001, // Very small near plane to avoid clipping when zoomed in close
+      10000  // Large far plane for big scenes
     );
     camera.position.set(3, 3, 3);
 
@@ -249,9 +249,11 @@
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.screenSpacePanning = false;
-    controls.minDistance = 1;
-    controls.maxDistance = 50;
+    controls.screenSpacePanning = true; // Allow free panning in screen space
+    controls.panSpeed = 1.5; // Faster panning for easier navigation
+    controls.rotateSpeed = 1.0;
+    controls.minDistance = 0.01; // Allow very close zoom
+    controls.maxDistance = Infinity; // No limit on zoom out
     controls.maxPolarAngle = Math.PI;
 
     // Auto-pause rotation when user interacts with controls
