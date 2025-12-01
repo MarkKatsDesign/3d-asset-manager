@@ -91,7 +91,25 @@
     return null;
   }
 
+  function getBreadcrumbPath() {
+    if (!asset.filePath) return [];
+
+    // Extract folder path from file path
+    const pathParts = asset.filePath.split(/[/\\]/);
+
+    // Remove the filename (last part) and any empty parts
+    const folders = pathParts.slice(0, -1).filter(part => part.length > 0);
+
+    // Return last 4 folders max to avoid overflow
+    if (folders.length > 4) {
+      return ['...', ...folders.slice(-4)];
+    }
+
+    return folders;
+  }
+
   $: folderBadge = getFolderBadge();
+  $: breadcrumb = getBreadcrumbPath();
 </script>
 
 <div
@@ -119,8 +137,9 @@
     {/if}
 
     <!-- Overlay on hover -->
-    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-      <div class="flex space-x-3">
+    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-between">
+      <!-- View Icon (Center) -->
+      <div class="flex-1 flex items-center justify-center">
         <div class="glass-button p-3 rounded-full">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -128,6 +147,24 @@
           </svg>
         </div>
       </div>
+
+      <!-- Breadcrumb Path (Bottom) -->
+      {#if breadcrumb.length > 0}
+        <div class="w-full px-3 pb-3">
+          <div class="bg-black/60 backdrop-blur-md px-3 py-2 rounded-lg border border-white/20">
+            <div class="flex items-center gap-1.5 flex-wrap text-xs">
+              {#each breadcrumb as folder, index}
+                <span class="text-white/90 font-medium">{folder}</span>
+                {#if index < breadcrumb.length - 1}
+                  <svg class="w-3 h-3 text-white/50 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                {/if}
+              {/each}
+            </div>
+          </div>
+        </div>
+      {/if}
     </div>
 
     <!-- File format badge (top-left) -->

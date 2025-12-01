@@ -36,12 +36,24 @@
     });
     return total;
   }
+
+  function collapseAll() {
+    groupedAssets.forEach(group => {
+      localAssetStore.toggleFolder(group.fullPath, false);
+    });
+  }
+
+  function expandAll() {
+    groupedAssets.forEach(group => {
+      localAssetStore.toggleFolder(group.fullPath, true);
+    });
+  }
 </script>
 
-<div class="w-full space-y-8">
+<div class="w-full space-y-4">
   {#if $localAssetStore.loading}
     <!-- Loading State -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
       {#each Array(10) as _, i}
         <div class="glass-card overflow-hidden animate-pulse" style="animation-delay: {i * 0.1}s">
           <div class="aspect-video bg-white/5 shimmer"></div>
@@ -84,12 +96,38 @@
       </div>
     </div>
   {:else}
+    <!-- Collapse/Expand All Controls -->
+    {#if groupedAssets.length > 0}
+      <div class="flex items-center justify-end gap-2 mb-4">
+        <button
+          on:click={expandAll}
+          class="glass-button px-3 py-1.5 text-sm flex items-center gap-2"
+          title="Expand all folders"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+          <span>Expand All</span>
+        </button>
+        <button
+          on:click={collapseAll}
+          class="glass-button px-3 py-1.5 text-sm flex items-center gap-2"
+          title="Collapse all folders"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+          <span>Collapse All</span>
+        </button>
+      </div>
+    {/if}
+
     <!-- Grouped Asset Grid -->
     {#each groupedAssets as group (group.fullPath)}
-      <div class="space-y-4 animate-fade-in" style="margin-left: {group.level * 2}rem">
-        <!-- Folder Header -->
+      <div class="space-y-3 animate-fade-in" style="margin-left: {group.level * 1.25}rem">
+        <!-- Folder Header (Sticky) -->
         <div
-          class="flex items-center gap-3 pb-3 border-b border-white/10 cursor-pointer hover:bg-white/5 rounded-lg p-2 -mx-2 transition-colors"
+          class="sticky top-16 z-10 flex items-center gap-3 pb-3 border-b border-white/10 cursor-pointer hover:bg-white/5 rounded-lg p-2 -mx-2 transition-colors backdrop-blur-md bg-black/40"
           on:click={() => toggleFolder(group.fullPath)}
           on:keydown={(e) => e.key === 'Enter' && toggleFolder(group.fullPath)}
           role="button"
@@ -115,33 +153,32 @@
           {/if}
 
           <!-- Folder Icon -->
-          <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-600/20 flex items-center justify-center">
-            <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-600/20 flex items-center justify-center">
+            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
             </svg>
           </div>
 
           <!-- Folder Info -->
-          <div class="flex-1">
-            <h3 class="text-xl font-bold text-white">
+          <div class="flex-1 flex items-center gap-2">
+            <h3 class="text-lg font-semibold text-white">
               {group.name}
             </h3>
-            <p class="text-sm text-white/50">
-              {#if hasChildren(group)}
-                {getTotalAssets(group)} total {getTotalAssets(group) === 1 ? 'asset' : 'assets'}
-                {#if group.assets.length > 0}
-                  ({group.assets.length} in this folder)
-                {/if}
-              {:else}
-                {group.assets.length} {group.assets.length === 1 ? 'asset' : 'assets'}
-              {/if}
-            </p>
+            <!-- Compact Badge -->
+            <span class="glass-card px-2 py-0.5 text-xs font-semibold gradient-text">
+              {getTotalAssets(group)}
+            </span>
+            {#if hasChildren(group) && group.assets.length > 0}
+              <span class="text-xs text-white/40">
+                ({group.assets.length} here)
+              </span>
+            {/if}
           </div>
         </div>
 
         <!-- Assets Grid (only shown if expanded and has assets) -->
         {#if isExpanded(group.fullPath) && group.assets.length > 0}
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
             {#each group.assets as asset (asset.id)}
               <AssetCard
                 {asset}
@@ -155,7 +192,7 @@
     {/each}
 
     <!-- Total Count -->
-    <div class="mt-8 text-center text-white/50 text-sm">
+    <div class="mt-4 text-center text-white/50 text-sm">
       {#if groupedAssets.length === 1}
         1 folder • {getTotalAssets(groupedAssets[0])} {getTotalAssets(groupedAssets[0]) === 1 ? 'asset' : 'assets'}
       {:else}
