@@ -10,6 +10,7 @@ export interface Asset {
   createdAt?: string;
   updatedAt?: string;
   folderId?: number;
+  isDeleted?: boolean;
 }
 
 export interface WatchedFolder {
@@ -41,6 +42,7 @@ export class DatabaseService {
         folderId INTEGER,
         createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
         updatedAt TEXT DEFAULT CURRENT_TIMESTAMP,
+        isDeleted INTEGER DEFAULT 0,
         FOREIGN KEY (folderId) REFERENCES watched_folders(id) ON DELETE SET NULL
       );
 
@@ -62,6 +64,20 @@ export class DatabaseService {
       CREATE INDEX IF NOT EXISTS idx_assets_tags ON assets(tags);
       CREATE INDEX IF NOT EXISTS idx_assets_folder ON assets(folderId);
     `);
+
+    // Migration: Add isDeleted column if it doesn't exist (for existing databases)
+    try {
+      const columns = this.db.pragma('table_info(assets)') as Array<{ name: string }>;
+      const hasIsDeleted = columns.some((col) => col.name === 'isDeleted');
+      if (!hasIsDeleted) {
+        this.db.exec('ALTER TABLE assets ADD COLUMN isDeleted INTEGER DEFAULT 0');
+      }
+    } catch (error) {
+      // Column might already exist or table doesn't exist yet
+    }
+
+    // Create index for isDeleted (after migration ensures column exists)
+    this.db.exec('CREATE INDEX IF NOT EXISTS idx_assets_deleted ON assets(isDeleted)');
   }
 
   // Asset operations
@@ -71,6 +87,7 @@ export class DatabaseService {
       SELECT a.*,
         (SELECT COUNT(*) FROM thumbnails t WHERE t.assetId = a.id) as hasThumbnail
       FROM assets a
+      WHERE a.isDeleted = 0
       ORDER BY a.updatedAt DESC
     `);
     const rows = stmt.all();
@@ -78,7 +95,7 @@ export class DatabaseService {
   }
 
   getAsset(id: number): Asset | null {
-    const stmt = this.db.prepare('SELECT * FROM assets WHERE id = ?');
+    const stmt = this.db.prepare('SELECT * FROM assets WHERE id = ? AND isDeleted = 0');
     const row = stmt.get(id);
     return row ? this.rowToAsset(row) : null;
   }
@@ -92,7 +109,8 @@ export class DatabaseService {
   searchAssets(query: string): Asset[] {
     const stmt = this.db.prepare(`
       SELECT * FROM assets
-      WHERE name LIKE ? OR description LIKE ? OR tags LIKE ?
+      WHERE (name LIKE ? OR description LIKE ? OR tags LIKE ?)
+        AND isDeleted = 0
       ORDER BY updatedAt DESC
     `);
     const searchPattern = `%${query}%`;
@@ -103,7 +121,7 @@ export class DatabaseService {
   getAssetsByTag(tag: string): Asset[] {
     const stmt = this.db.prepare(`
       SELECT * FROM assets
-      WHERE tags LIKE ?
+      WHERE tags LIKE ? AND isDeleted = 0
       ORDER BY updatedAt DESC
     `);
     const rows = stmt.all(`%${tag}%`);
@@ -111,7 +129,7 @@ export class DatabaseService {
   }
 
   getAssetsByFolder(folderId: number): Asset[] {
-    const stmt = this.db.prepare('SELECT * FROM assets WHERE folderId = ? ORDER BY name');
+    const stmt = this.db.prepare('SELECT * FROM assets WHERE folderId = ? AND isDeleted = 0 ORDER BY name');
     const rows = stmt.all(folderId);
     return rows.map(this.rowToAsset);
   }
@@ -166,13 +184,13 @@ export class DatabaseService {
   }
 
   deleteAsset(id: number): boolean {
-    const stmt = this.db.prepare('DELETE FROM assets WHERE id = ?');
+    const stmt = this.db.prepare('UPDATE assets SET isDeleted = 1 WHERE id = ?');
     const result = stmt.run(id);
     return result.changes > 0;
   }
 
   getAllTags(): string[] {
-    const stmt = this.db.prepare('SELECT DISTINCT tags FROM assets WHERE tags IS NOT NULL');
+    const stmt = this.db.prepare('SELECT DISTINCT tags FROM assets WHERE tags IS NOT NULL AND isDeleted = 0');
     const rows = stmt.all() as { tags: string }[];
 
     const tagSet = new Set<string>();
@@ -216,7 +234,7 @@ export class DatabaseService {
 
   getWatchedFolders(): WatchedFolder[] {
     const stmt = this.db.prepare(`
-      SELECT f.*, COUNT(a.id) as assetCount
+      SELECT f.*, COUNT(CASE WHEN a.isDeleted = 0 THEN 1 END) as assetCount
       FROM watched_folders f
       LEFT JOIN assets a ON a.folderId = f.id
       GROUP BY f.id
@@ -298,7 +316,8 @@ export class DatabaseService {
       tags: row.tags ? JSON.parse(row.tags) : [],
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
-      folderId: row.folderId
+      folderId: row.folderId,
+      isDeleted: Boolean(row.isDeleted)
     };
   }
 

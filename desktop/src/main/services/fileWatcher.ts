@@ -278,6 +278,8 @@ export class FileWatcherService {
       // Check if asset already exists
       const existing = this.dbService.getAssetByPath(filePath);
       if (existing) {
+        // If the asset exists but is deleted, don't re-add it
+        // This preserves the user's deletion choice
         return;
       }
 
