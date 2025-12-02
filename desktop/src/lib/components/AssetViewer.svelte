@@ -52,6 +52,13 @@
   let saveTimeout;
   let savingNotes = false;
   let notesSaved = false;
+  let currentAssetId = asset.id;
+
+  // Reactively update description when viewing a different asset
+  $: if (asset && asset.id !== currentAssetId) {
+    currentAssetId = asset.id;
+    description = asset.description || '';
+  }
 
   // Technical details
   let showTechnicalDetails = false;
@@ -203,7 +210,20 @@
     window.addEventListener('resize', handleResize);
   });
 
-  onDestroy(() => {
+  onDestroy(async () => {
+    // Save any pending notes before component is destroyed
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+      // Note: await may not complete if component is destroyed rapidly
+      // but we'll try our best
+      try {
+        await saveNotes();
+      } catch (error) {
+        console.error('Error saving notes on destroy:', error);
+      }
+    }
+
+    // Cleanup Three.js resources and event listeners
     cleanup();
     window.removeEventListener('resize', handleResize);
   });
@@ -1296,9 +1316,18 @@
     }, 1000);
   }
 
+  async function handleClose() {
+    // Save notes immediately if there's a pending save
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+      await saveNotes();
+    }
+    onClose();
+  }
+
   function handleOverlayKeydown(e) {
     if (e.key === 'Escape') {
-      onClose();
+      handleClose();
     }
   }
 
@@ -1314,7 +1343,7 @@
 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 <div
   class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
-  on:click={onClose}
+  on:click={handleClose}
   on:keydown={handleOverlayKeydown}
   role="button"
   tabindex="0"
@@ -1415,7 +1444,7 @@
         </button>
 
         <button
-          on:click={onClose}
+          on:click={handleClose}
           class="glass-button p-3"
           title="Close"
         >

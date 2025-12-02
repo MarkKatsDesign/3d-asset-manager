@@ -107,7 +107,12 @@ ipcMain.handle("db:getAssetsByTag", async (_event, tag: string) => {
 
 // Update asset metadata
 ipcMain.handle("db:updateAsset", async (_event, id: number, data: any) => {
-  return dbService.updateAsset(id, data);
+  const updatedAsset = dbService.updateAsset(id, data);
+  // Notify renderer process that asset was updated
+  if (updatedAsset) {
+    notifyAssetUpdated(updatedAsset);
+  }
+  return updatedAsset;
 });
 
 // Delete asset
