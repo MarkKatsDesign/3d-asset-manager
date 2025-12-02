@@ -1582,58 +1582,6 @@
             {/if}
           </div>
 
-          <!-- Notes Button with Panel -->
-          <div class="relative flex items-end">
-            <button
-              on:click={() => {
-                showNotes = !showNotes;
-                if (showNotes) {
-                  showControls = false;
-                  showRotationControls = false;
-                }
-              }}
-              class="p-3 transition-all duration-300 {isLightBackground && !transparentBackground ? 'glass-button-light' : 'glass-button'}"
-              title="Notes"
-            >
-              <svg class="w-5 h-5 viewer-icon-outlined" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
-
-            <!-- Notes Panel (Absolutely Positioned) -->
-            {#if showNotes}
-            <div class="absolute bottom-full right-0 mb-2 w-64 p-4 space-y-3 max-h-[calc(100vh-180px)] overflow-y-auto custom-scrollbar animate-slide-up transition-all duration-300 {isDarkCard ? 'glass-card-light' : 'glass-card'}">
-              <!-- Header -->
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                  <svg class="w-4 h-4 {isDarkCard ? 'text-white' : 'text-white/80'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  <h3 class="font-semibold text-sm gradient-text">Notes</h3>
-                </div>
-                <div class="flex items-center space-x-2">
-                  {#if savingNotes}
-                    <span class="text-xs {isDarkCard ? 'text-white' : 'text-white/50'}">Saving...</span>
-                  {:else if notesSaved}
-                    <span class="text-xs text-green-400">Saved</span>
-                  {/if}
-                </div>
-              </div>
-
-              <!-- Notes Content -->
-              <div class="space-y-2">
-                <textarea
-                  bind:value={description}
-                  on:input={handleNotesInput}
-                  placeholder="Add notes or description for this model..."
-                  class="w-full h-48 px-3 py-2 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all bg-white/90 text-gray-900 placeholder-gray-500 border border-gray-300"
-                ></textarea>
-                <p class="text-xs {isDarkCard ? 'text-white/90' : 'text-white/40'}">Changes save automatically</p>
-              </div>
-            </div>
-            {/if}
-          </div>
-
           <!-- Environment Button with Panel -->
           <div class="relative flex items-end">
             <button
@@ -1858,6 +1806,60 @@
           </div>
         </div>
       {/if}
+
+      <!-- Notes Button - Always visible even when model fails to load -->
+      <div class="absolute bottom-4 right-4 flex flex-col items-end gap-2">
+        <div class="relative flex items-end">
+          <button
+            on:click={() => {
+              showNotes = !showNotes;
+              if (showNotes) {
+                showControls = false;
+                showRotationControls = false;
+              }
+            }}
+            class="p-3 transition-all duration-300 {isLightBackground && !transparentBackground ? 'glass-button-light' : 'glass-button'}"
+            title="Notes"
+          >
+            <svg class="w-5 h-5 viewer-icon-outlined" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
+
+          <!-- Notes Panel (Absolutely Positioned) -->
+          {#if showNotes}
+          <div class="absolute bottom-full right-0 mb-2 w-64 p-4 space-y-3 max-h-[calc(100vh-180px)] overflow-y-auto custom-scrollbar animate-slide-up transition-all duration-300 {isDarkCard ? 'glass-card-light' : 'glass-card'}">
+            <!-- Header -->
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <svg class="w-4 h-4 {isDarkCard ? 'text-white' : 'text-white/80'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <h3 class="font-semibold text-sm gradient-text">Notes</h3>
+              </div>
+              <div class="flex items-center space-x-2">
+                {#if savingNotes}
+                  <span class="text-xs {isDarkCard ? 'text-white' : 'text-white/50'}">Saving...</span>
+                {:else if notesSaved}
+                  <span class="text-xs text-green-400">Saved</span>
+                {/if}
+              </div>
+            </div>
+
+            <!-- Notes Content -->
+            <div class="space-y-2">
+              <textarea
+                bind:value={description}
+                on:input={handleNotesInput}
+                placeholder="Add notes or description for this model..."
+                class="w-full h-48 px-3 py-2 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all bg-white/90 text-gray-900 placeholder-gray-500 border border-gray-300"
+              ></textarea>
+              <p class="text-xs {isDarkCard ? 'text-white/90' : 'text-white/40'}">Changes save automatically</p>
+            </div>
+          </div>
+          {/if}
+        </div>
+      </div>
     </div>
 
     <!-- Footer with metadata -->
