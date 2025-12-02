@@ -34,6 +34,11 @@
     return () => clearInterval(interval);
   });
 
+  // Reactive statement: reload thumbnail when asset changes
+  $: if (asset && asset.id) {
+    loadThumbnail();
+  }
+
   async function loadThumbnail() {
     const thumbnail = await localAssetStore.getThumbnail(asset.id);
     if (thumbnail) {

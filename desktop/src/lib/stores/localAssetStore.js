@@ -428,11 +428,15 @@ function createLocalAssetStore() {
     },
 
     triggerAssetUpdate: (assetId) => {
-      // Force a reactive update by creating a new assets array
-      // This will trigger any components subscribed to the store to re-render
+      // Force a reactive update by creating new asset objects
+      // This will trigger Svelte's reactivity in components using the asset
       update(state => ({
         ...state,
-        assets: [...state.assets]
+        assets: state.assets.map(a =>
+          a.id === assetId
+            ? { ...a, _thumbnailUpdated: Date.now() } // Add timestamp to force reactivity
+            : a
+        )
       }));
     },
 
