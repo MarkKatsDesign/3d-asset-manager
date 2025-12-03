@@ -70,6 +70,21 @@
   let rotationSpeed = 0.3; // Degrees per frame (range: 0.05 to 2.0)
   let showRotationControls = false;
 
+  // Keyboard navigation
+  let keyboardState = {
+    w: false,
+    a: false,
+    s: false,
+    d: false,
+    space: false,
+    shift: false
+  };
+  let baseMovementSpeed = 0.008; // Base movement speed (reduced for smoother control)
+  let sprintMultiplier = 2.5; // Speed multiplier when holding Shift
+  let verticalSpeedMultiplier = 0.5; // Vertical movement speed multiplier (up/down is slower)
+  let velocity = new THREE.Vector3(); // Current velocity for smooth movement
+  let smoothing = 0.05; // Movement smoothing factor (0-1, lower = smoother and more gradual)
+
   // Preset background colors
   const colorPresets = [
     { name: 'White', color: '#ffffff' },
@@ -208,6 +223,10 @@
 
     // Handle window resize
     window.addEventListener('resize', handleResize);
+
+    // Keyboard navigation event listeners
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
   });
 
   onDestroy(async () => {
@@ -226,6 +245,8 @@
     // Cleanup Three.js resources and event listeners
     cleanup();
     window.removeEventListener('resize', handleResize);
+    window.removeEventListener('keydown', handleKeyDown);
+    window.removeEventListener('keyup', handleKeyUp);
   });
 
   function initScene() {
@@ -268,10 +289,10 @@
     // Controls
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
+    controls.dampingFactor = 0.08; // Smooth, controlled damping for product viewing
     controls.screenSpacePanning = true; // Allow free panning in screen space
-    controls.panSpeed = 1.5; // Faster panning for easier navigation
-    controls.rotateSpeed = 1.0;
+    controls.panSpeed = 0.6; // Reduced for tighter, more controlled panning around products
+    controls.rotateSpeed = 0.8; // Slightly reduced for smoother, more precise rotation
     controls.minDistance = 0.01; // Allow very close zoom
     controls.maxDistance = Infinity; // No limit on zoom out
     controls.maxPolarAngle = Math.PI;
@@ -1178,6 +1199,30 @@
     }
   }
 
+  // Keyboard navigation handlers
+  function handleKeyDown(e) {
+    const key = e.key.toLowerCase();
+    if (key === 'w') keyboardState.w = true;
+    if (key === 'a') keyboardState.a = true;
+    if (key === 's') keyboardState.s = true;
+    if (key === 'd') keyboardState.d = true;
+    if (key === ' ') {
+      e.preventDefault(); // Prevent page scroll
+      keyboardState.space = true;
+    }
+    if (key === 'shift') keyboardState.shift = true;
+  }
+
+  function handleKeyUp(e) {
+    const key = e.key.toLowerCase();
+    if (key === 'w') keyboardState.w = false;
+    if (key === 'a') keyboardState.a = false;
+    if (key === 's') keyboardState.s = false;
+    if (key === 'd') keyboardState.d = false;
+    if (key === ' ') keyboardState.space = false;
+    if (key === 'shift') keyboardState.shift = false;
+  }
+
   function animate() {
     animationId = requestAnimationFrame(animate);
 
@@ -1195,6 +1240,44 @@
 
       // Keep camera looking at center
       camera.lookAt(0, 0, 0);
+    }
+
+    // Keyboard navigation: WASD movement with smooth interpolation
+    if (camera && controls && !loading) {
+      const moveSpeed = keyboardState.shift ? baseMovementSpeed * sprintMultiplier : baseMovementSpeed;
+      const targetVelocity = new THREE.Vector3();
+
+      // Get camera direction vectors
+      const forward = new THREE.Vector3();
+      camera.getWorldDirection(forward);
+      forward.y = 0; // Keep movement horizontal
+      forward.normalize();
+
+      const right = new THREE.Vector3();
+      right.crossVectors(forward, camera.up).normalize();
+
+      // Calculate target velocity based on keyboard input
+      if (keyboardState.w) targetVelocity.add(forward.clone().multiplyScalar(moveSpeed));
+      if (keyboardState.s) targetVelocity.add(forward.clone().multiplyScalar(-moveSpeed));
+      if (keyboardState.a) targetVelocity.add(right.clone().multiplyScalar(-moveSpeed));
+      if (keyboardState.d) targetVelocity.add(right.clone().multiplyScalar(moveSpeed));
+
+      // Up/Down movement (world space) - slower than horizontal movement
+      const verticalSpeed = moveSpeed * verticalSpeedMultiplier;
+      if (keyboardState.space) targetVelocity.y += verticalSpeed;
+      if (keyboardState.shift && !keyboardState.w && !keyboardState.s && !keyboardState.a && !keyboardState.d) {
+        // If only Shift is pressed (no WASD), move down
+        targetVelocity.y -= verticalSpeed;
+      }
+
+      // Smooth interpolation (lerp) between current velocity and target velocity
+      velocity.lerp(targetVelocity, smoothing);
+
+      // Apply smoothed velocity to both camera and controls target
+      if (velocity.length() > 0.0001) {
+        camera.position.add(velocity);
+        controls.target.add(velocity);
+      }
     }
 
     controls.update();
@@ -1526,6 +1609,9 @@
           <p>Left click + drag to rotate</p>
           <p>Right click + drag to pan</p>
           <p>Scroll to zoom</p>
+          <p class="mt-2 pt-2 border-t border-white/10">WASD to move around</p>
+          <p>Space/Shift for up/down</p>
+          <p>Hold Shift + WASD to sprint</p>
         </div>
 
         <!-- Environment Controls and Notes -->
