@@ -14,6 +14,7 @@
   const dispatch = createEventDispatcher();
   let thumbnailUrl = null;
   let checkCount = 0;
+  let isLoadingThumbnail = true; // Track thumbnail loading state
   let showContextMenu = false;
   let contextMenuX = 0;
   let contextMenuY = 0;
@@ -23,15 +24,32 @@
     // Load thumbnail from local database
     await loadThumbnail();
 
-    // Check for updated thumbnail a few times (in case it's being generated)
+    // If we already have a placeholder thumbnail (SVG), don't show spinner or keep checking
+    // This means the thumbnail already failed to generate or file is too large
+    if (thumbnailUrl && thumbnailUrl.includes('svg+xml')) {
+      isLoadingThumbnail = false;
+      return; // Don't start the interval
+    }
+
+    // If we have a real thumbnail already, no need to show spinner
+    if (thumbnailUrl && !thumbnailUrl.includes('svg+xml')) {
+      isLoadingThumbnail = false;
+      return; // Don't start the interval
+    }
+
+    // Only check for updated thumbnail if we don't have one yet
     const interval = setInterval(async () => {
       checkCount++;
-      const hadPlaceholder = thumbnailUrl && thumbnailUrl.includes('svg+xml');
       await loadThumbnail();
 
       // Stop checking after 5 attempts or when we get a real thumbnail
       if (checkCount >= 5 || (thumbnailUrl && !thumbnailUrl.includes('svg+xml'))) {
         clearInterval(interval);
+        isLoadingThumbnail = false; // Done loading
+      } else if (thumbnailUrl && thumbnailUrl.includes('svg+xml')) {
+        // Got a placeholder, stop trying
+        clearInterval(interval);
+        isLoadingThumbnail = false;
       }
     }, 3000); // Check every 3 seconds
 
@@ -48,6 +66,10 @@
     const thumbnail = await localAssetStore.getThumbnail(asset.id);
     if (thumbnail) {
       thumbnailUrl = thumbnail;
+      // If we got a real thumbnail (not placeholder), stop loading state
+      if (!thumbnail.includes('svg+xml')) {
+        isLoadingThumbnail = false;
+      }
     }
   }
 
@@ -142,6 +164,7 @@
 
     try {
       regeneratingThumbnail = true;
+      isLoadingThumbnail = true; // Show loading spinner
       console.log('Regenerating thumbnail for asset:', asset.id);
 
       // Generate new thumbnail
@@ -158,11 +181,14 @@
         localAssetStore.triggerAssetUpdate(asset.id);
 
         console.log('Thumbnail regenerated successfully');
+        isLoadingThumbnail = false; // Stop loading spinner on success
       } else {
+        isLoadingThumbnail = false; // Stop loading spinner on failure
         alert('Failed to regenerate thumbnail. The model might be too large or complex.');
       }
     } catch (error) {
       console.error('Error regenerating thumbnail:', error);
+      isLoadingThumbnail = false; // Stop loading spinner on error
       alert('Failed to regenerate thumbnail. Please try again.');
     } finally {
       regeneratingThumbnail = false;
@@ -179,19 +205,35 @@
   tabindex="0"
 >
   <!-- Thumbnail -->
-  <div class="relative aspect-video overflow-hidden">
-    {#if thumbnailUrl}
+  <div class="relative aspect-video overflow-hidden bg-gradient-to-br from-gray-800/50 to-gray-900/50">
+    {#if thumbnailUrl && !isLoadingThumbnail}
       <img
         src={thumbnailUrl}
         alt={asset.name}
         class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
       />
     {:else}
-      <!-- Placeholder 3D Icon -->
-      <div class="absolute inset-0 flex items-center justify-center">
-        <svg class="w-20 h-20 text-white/30 group-hover:text-white/50 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-        </svg>
+      <!-- Loading Spinner -->
+      <div class="absolute inset-0 flex flex-col items-center justify-center gap-4">
+        {#if isLoadingThumbnail}
+          <!-- Animated spinner -->
+          <div class="relative w-16 h-16">
+            <!-- Outer ring -->
+            <div class="absolute inset-0 rounded-full border-4 border-white/10"></div>
+            <!-- Spinning gradient ring -->
+            <div class="absolute inset-0 rounded-full border-4 border-transparent border-t-indigo-500 border-r-purple-500 animate-spin"></div>
+            <!-- Inner pulsing dot -->
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="w-3 h-3 bg-indigo-400 rounded-full animate-pulse"></div>
+            </div>
+          </div>
+          <p class="text-white/60 text-sm font-medium">Generating thumbnail...</p>
+        {:else}
+          <!-- Placeholder 3D Icon (if loading finished but no thumbnail) -->
+          <svg class="w-20 h-20 text-white/30 group-hover:text-white/50 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+        {/if}
       </div>
     {/if}
 

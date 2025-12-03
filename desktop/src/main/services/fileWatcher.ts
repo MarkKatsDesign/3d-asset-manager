@@ -116,13 +116,11 @@ export class FileWatcherService {
       console.log(`[Rescan] Found ${modelFiles.length} model files in ${folderPath}`);
       console.log(`[Rescan] Supported extensions:`, this.supportedExtensions);
 
-      // Remove all existing assets from this folder (database entries only)
-      const existingAssets = this.dbService.getAssetsByFolder(folder.id!);
-      console.log(`[Rescan] Removing ${existingAssets.length} existing database entries`);
+      // Permanently remove all existing assets from this folder (including soft-deleted ones)
+      // This ensures a clean state for rescanning
+      const deletedCount = this.dbService.hardDeleteAssetsForFolder(folder.id!);
+      console.log(`[Rescan] Permanently removed ${deletedCount} database entries (including any previously deleted)`);
 
-      for (const asset of existingAssets) {
-        this.dbService.deleteAsset(asset.id!);
-      }
 
       // Re-add the found model files to database
       if (modelFiles.length > 0) {

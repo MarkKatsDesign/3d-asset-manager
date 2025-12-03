@@ -101,7 +101,7 @@ export class DatabaseService {
   }
 
   getAssetByPath(filePath: string): Asset | null {
-    const stmt = this.db.prepare('SELECT * FROM assets WHERE filePath = ?');
+    const stmt = this.db.prepare('SELECT * FROM assets WHERE filePath = ? AND isDeleted = 0');
     const row = stmt.get(filePath);
     return row ? this.rowToAsset(row) : null;
   }
@@ -187,6 +187,16 @@ export class DatabaseService {
     const stmt = this.db.prepare('UPDATE assets SET isDeleted = 1 WHERE id = ?');
     const result = stmt.run(id);
     return result.changes > 0;
+  }
+
+  /**
+   * Permanently delete all assets (including soft-deleted ones) for a folder
+   * Used during folder rescan to ensure clean state
+   */
+  hardDeleteAssetsForFolder(folderId: number): number {
+    const stmt = this.db.prepare('DELETE FROM assets WHERE folderId = ?');
+    const result = stmt.run(folderId);
+    return result.changes;
   }
 
   getAllTags(): string[] {

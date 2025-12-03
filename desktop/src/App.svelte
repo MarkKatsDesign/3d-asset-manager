@@ -64,8 +64,10 @@
     showFolderManager = true;
   }
 
-  function handleCloseFolderManager() {
+  async function handleCloseFolderManager() {
     showFolderManager = false;
+    // Reload assets after closing folder manager (in case folders were rescanned)
+    await localAssetStore.loadAssets();
   }
 
   function handleCustomizeBackground() {
