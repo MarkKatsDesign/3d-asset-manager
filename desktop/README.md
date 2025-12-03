@@ -156,4 +156,29 @@ This creates installers in the `release/` directory.
 
 ## License
 
-MIT
+This project is licensed under the **GNU General Public License v3.0** - see the [LICENSE](../LICENSE) file for details.
+
+### What This Means:
+
+✅ **You can:**
+- Use this software for free (personal or commercial)
+- Modify and improve the code
+- Distribute it to others
+- Study how it works
+
+⚠️ **BUT you must:**
+- Keep it open-source (GPL v3)
+- Share your source code if you distribute modified versions
+- Include the original copyright notice
+- License your modifications under GPL v3
+
+❌ **You cannot:**
+- Make a proprietary/closed-source version
+- Remove or change the license
+- Use it without providing source code access
+
+### Why GPL v3?
+
+This license protects the project from commercial exploitation while ensuring it remains free and open for everyone. Any improvements or derivatives must also be open-source, benefiting the entire community.
+
+For the complete license text, see: https://www.gnu.org/licenses/gpl-3.0.html
