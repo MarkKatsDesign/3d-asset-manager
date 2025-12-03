@@ -4,7 +4,7 @@
 
 Built with Electron, Svelte, and Three.js for Windows 10/11.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue.svg)
 ![Electron](https://img.shields.io/badge/Electron-28.1.0-47848F.svg)
 ![Svelte](https://img.shields.io/badge/Svelte-4.2.8-FF3E00.svg)
@@ -19,13 +19,14 @@ Instead of uploading files to the cloud or opening each model in heavy 3D softwa
 ## Screenshots
 
 ![Forma Application](docs/images/screenshot-placeholder.png)
-*Main interface showing asset grid with thumbnails and 3D preview (screenshots coming soon)*
+_Main interface showing asset grid with thumbnails and 3D preview (screenshots coming soon)_
 
 > **Note**: This is an early version. Professional screenshots and demo GIFs will be added soon.
 
 ## Features
 
 ### Core Features
+
 - **Local File Indexing** - Automatically discovers 3D models in watched folders
 - **Real-time 3D Preview** - Interactive viewer with orbit controls, lighting, and materials
 - **Thumbnail Generation** - Automatic high-quality thumbnail creation with studio lighting
@@ -37,6 +38,7 @@ Instead of uploading files to the cloud or opening each model in heavy 3D softwa
 - **Fast Performance** - Direct file system access with SQLite database
 
 ### Advanced Features
+
 - **Screenshot Export** - Capture 3D viewport at multiple resolutions (1080p, 2K, 4K)
 - **Advanced HDRI System**
   - Upload custom HDRI environments (.hdr, .exr, .jpg, .png)
@@ -61,20 +63,22 @@ Instead of uploading files to the cloud or opening each model in heavy 3D softwa
 ## Supported Formats
 
 ### 3D Model Formats
-| Format | Extension | Type | Textures |
-|--------|-----------|------|----------|
-| **GLB** | `.glb` | Binary GLTF | ✅ Full support |
-| **GLTF** | `.gltf` | Text GLTF (limited) | ⚠️ External files required |
-| **OBJ** | `.obj` | Wavefront | ⚠️ Geometry only |
-| **FBX** | `.fbx` | Autodesk | ✅ Full support |
-| **STL** | `.stl` | Stereolithography | ⚠️ Geometry only |
+
+| Format   | Extension | Type                | Textures                   |
+| -------- | --------- | ------------------- | -------------------------- |
+| **GLB**  | `.glb`    | Binary GLTF         | ✅ Full support            |
+| **GLTF** | `.gltf`   | Text GLTF (limited) | ⚠️ External files required |
+| **OBJ**  | `.obj`    | Wavefront           | ⚠️ Geometry only           |
+| **FBX**  | `.fbx`    | Autodesk            | ✅ Full support            |
+| **STL**  | `.stl`    | Stereolithography   | ⚠️ Geometry only           |
 
 ### Environment/HDRI Formats
-| Format | Extension | Type | Notes |
-|--------|-----------|------|-------|
-| **HDR** | `.hdr` | RGBE High Dynamic Range | ✅ Full support with rotation |
-| **EXR** | `.exr` | OpenEXR | ✅ Full support with rotation |
-| **JPG/PNG** | `.jpg`, `.png` | Standard Images | ✅ Can be used as environment maps |
+
+| Format      | Extension      | Type                    | Notes                              |
+| ----------- | -------------- | ----------------------- | ---------------------------------- |
+| **HDR**     | `.hdr`         | RGBE High Dynamic Range | ✅ Full support with rotation      |
+| **EXR**     | `.exr`         | OpenEXR                 | ✅ Full support with rotation      |
+| **JPG/PNG** | `.jpg`, `.png` | Standard Images         | ✅ Can be used as environment maps |
 
 ## Installation
 
@@ -106,6 +110,7 @@ npm run dev
 ```
 
 The application will launch automatically. On first run:
+
 1. Click "Manage Folders" in the top-right
 2. Select a directory containing 3D models (.glb, .obj, .fbx, .stl)
 3. Forma will automatically scan and generate thumbnails
@@ -124,6 +129,7 @@ npm run package:win
 ```
 
 Output files will be in `release/` directory:
+
 - `Forma Setup.exe` - NSIS installer
 - `Forma.exe` - Portable executable
 
@@ -133,15 +139,15 @@ Output files will be in `release/` directory:
 
 ### Technology Stack
 
-| Component | Technology | Purpose |
-|-----------|------------|---------|
-| **Desktop Framework** | Electron 28.1.0 | Cross-platform desktop apps |
-| **Frontend** | Svelte 4.2.8 | Reactive UI framework |
-| **3D Engine** | Three.js 0.160.0 | WebGL-based 3D rendering |
-| **Database** | better-sqlite3 9.2.2 | Fast local storage |
-| **File Watching** | chokidar 3.5.3 | File system monitoring |
-| **Build Tool** | Vite 5.0.11 | Fast builds and HMR |
-| **Styling** | Tailwind CSS 3.4.1 | Utility-first CSS |
+| Component             | Technology           | Purpose                     |
+| --------------------- | -------------------- | --------------------------- |
+| **Desktop Framework** | Electron 28.1.0      | Cross-platform desktop apps |
+| **Frontend**          | Svelte 4.2.8         | Reactive UI framework       |
+| **3D Engine**         | Three.js 0.160.0     | WebGL-based 3D rendering    |
+| **Database**          | better-sqlite3 9.2.2 | Fast local storage          |
+| **File Watching**     | chokidar 3.5.3       | File system monitoring      |
+| **Build Tool**        | Vite 5.0.11          | Fast builds and HMR         |
+| **Styling**           | Tailwind CSS 3.4.1   | Utility-first CSS           |
 
 ### Project Structure
 
@@ -211,9 +217,36 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
+**Note**: All contributions must be licensed under GPL v3 to maintain the project's copyleft protection.
+
 ## License
 
-This project is licensed under the [MIT License](./LICENSE).
+This project is licensed under the **GNU General Public License v3.0** - see the [LICENSE](./LICENSE) file for details.
+
+### What This Means:
+
+✅ **You can:**
+- Use this software for free (personal or commercial)
+- Modify and improve the code
+- Distribute it to others
+- Study how it works
+
+⚠️ **BUT you must:**
+- Keep it open-source (GPL v3)
+- Share your source code if you distribute modified versions
+- Include the original copyright notice
+- License your modifications under GPL v3
+
+❌ **You cannot:**
+- Make a proprietary/closed-source version
+- Remove or change the license
+- Use it without providing source code access
+
+### Why GPL v3?
+
+This license protects the project from commercial exploitation while ensuring it remains free and open for everyone. Any improvements or derivatives must also be open-source, benefiting the entire community.
+
+For the complete license text, see: https://www.gnu.org/licenses/gpl-3.0.html
 
 ## Author
 
@@ -227,6 +260,7 @@ This project is licensed under the [MIT License](./LICENSE).
 ## Legacy Web Application
 
 This repository originally contained a web-based version of this 3D asset management tool. The web application files are preserved in:
+
 - `frontend/` - Svelte web application
 - `backend/` - PocketBase backend
 - `docs/legacy/` - Web app documentation
