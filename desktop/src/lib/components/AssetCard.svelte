@@ -2,6 +2,7 @@
   import { createEventDispatcher, onMount } from 'svelte';
   import { localAssetStore } from '../stores/localAssetStore';
   import { themeStore, themes } from '../stores/themeStore';
+  import { generateThumbnail } from '../utils/thumbnailGenerator';
 
   export let asset;
 
@@ -13,6 +14,10 @@
   const dispatch = createEventDispatcher();
   let thumbnailUrl = null;
   let checkCount = 0;
+  let showContextMenu = false;
+  let contextMenuX = 0;
+  let contextMenuY = 0;
+  let regeneratingThumbnail = false;
 
   onMount(async () => {
     // Load thumbnail from local database
@@ -115,11 +120,60 @@
 
   $: folderBadge = getFolderBadge();
   $: breadcrumb = getBreadcrumbPath();
+
+  function handleContextMenu(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    contextMenuX = e.clientX;
+    contextMenuY = e.clientY;
+    showContextMenu = true;
+
+    // Close menu when clicking anywhere else
+    const closeMenu = () => {
+      showContextMenu = false;
+      window.removeEventListener('click', closeMenu);
+    };
+    setTimeout(() => window.addEventListener('click', closeMenu), 0);
+  }
+
+  async function handleRegenerateThumbnail(e) {
+    e.stopPropagation();
+    showContextMenu = false;
+
+    try {
+      regeneratingThumbnail = true;
+      console.log('Regenerating thumbnail for asset:', asset.id);
+
+      // Generate new thumbnail
+      const thumbnailData = await generateThumbnail(asset.id, asset.path || asset.filePath);
+
+      if (thumbnailData) {
+        // Save the generated thumbnail
+        await window.electronAPI.saveThumbnail(asset.id, thumbnailData);
+
+        // Reload the thumbnail to show the new one
+        await loadThumbnail();
+
+        // Trigger asset update to refresh thumbnail in other views
+        localAssetStore.triggerAssetUpdate(asset.id);
+
+        console.log('Thumbnail regenerated successfully');
+      } else {
+        alert('Failed to regenerate thumbnail. The model might be too large or complex.');
+      }
+    } catch (error) {
+      console.error('Error regenerating thumbnail:', error);
+      alert('Failed to regenerate thumbnail. Please try again.');
+    } finally {
+      regeneratingThumbnail = false;
+    }
+  }
 </script>
 
 <div
   class="glass-card cursor-pointer group overflow-hidden animate-fade-in"
   on:click={handleClick}
+  on:contextmenu={handleContextMenu}
   on:keydown={(e) => e.key === 'Enter' && handleClick()}
   role="button"
   tabindex="0"
@@ -241,6 +295,32 @@
     </div>
   </div>
 </div>
+
+<!-- Context Menu -->
+{#if showContextMenu}
+  <div
+    class="fixed z-[9999] min-w-[200px] py-2 glass-card shadow-2xl"
+    style="left: {contextMenuX}px; top: {contextMenuY}px;"
+  >
+    <button
+      on:click={handleRegenerateThumbnail}
+      disabled={regeneratingThumbnail}
+      class="w-full px-4 py-2.5 text-left text-sm hover:bg-white/10 transition-colors flex items-center gap-3 {regeneratingThumbnail ? 'opacity-50 cursor-not-allowed' : ''}"
+    >
+      {#if regeneratingThumbnail}
+        <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        <span>Regenerating...</span>
+      {:else}
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        <span>Regenerate Thumbnail</span>
+      {/if}
+    </button>
+  </div>
+{/if}
 
 <style>
   .line-clamp-2 {

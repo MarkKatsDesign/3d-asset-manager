@@ -10,6 +10,7 @@
   import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
   import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';
   import { localAssetStore } from '../stores/localAssetStore';
+  import { generateThumbnail } from '../utils/thumbnailGenerator';
 
   export let asset;
   export let onClose;
@@ -104,6 +105,8 @@
   // Custom thumbnail upload
   let uploadingThumbnail = false;
   let thumbnailUploadSuccess = false;
+  let regeneratingThumbnail = false;
+  let thumbnailRegenerateSuccess = false;
   let fallbackThumbnail = null; // Store thumbnail to show when model fails
 
   /**
@@ -568,6 +571,46 @@
 
     // Trigger file picker
     input.click();
+  }
+
+  async function handleRegenerateThumbnail() {
+    try {
+      regeneratingThumbnail = true;
+      thumbnailRegenerateSuccess = false;
+
+      console.log('Regenerating thumbnail for asset:', asset.id);
+
+      // Generate new thumbnail using the thumbnail generator
+      const thumbnailData = await generateThumbnail(asset.id, asset.path);
+
+      if (thumbnailData) {
+        // Save the generated thumbnail
+        await window.electronAPI.saveThumbnail(asset.id, thumbnailData);
+
+        // Update the fallback thumbnail for display
+        fallbackThumbnail = thumbnailData;
+
+        // Trigger asset update to refresh thumbnail in grid
+        localAssetStore.triggerAssetUpdate(asset.id);
+
+        // Show success feedback
+        regeneratingThumbnail = false;
+        thumbnailRegenerateSuccess = true;
+
+        // Hide success message after 2 seconds
+        setTimeout(() => {
+          thumbnailRegenerateSuccess = false;
+        }, 2000);
+
+        console.log('Thumbnail regenerated successfully');
+      } else {
+        throw new Error('Failed to generate thumbnail');
+      }
+    } catch (error) {
+      console.error('Error regenerating thumbnail:', error);
+      regeneratingThumbnail = false;
+      alert('Failed to regenerate thumbnail. The model might be too large or complex.');
+    }
   }
 
   function setupEnvironment() {
@@ -1522,6 +1565,28 @@
           {:else}
             <svg class="w-5 h-5 viewer-icon-outlined" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          {/if}
+        </button>
+
+        <!-- Regenerate Thumbnail Button -->
+        <button
+          on:click={handleRegenerateThumbnail}
+          disabled={regeneratingThumbnail}
+          class="glass-button p-3 {regeneratingThumbnail ? 'opacity-50 cursor-not-allowed' : ''} {thumbnailRegenerateSuccess ? 'bg-green-500/20 border-green-400' : ''}"
+          title={regeneratingThumbnail ? 'Regenerating...' : thumbnailRegenerateSuccess ? 'Thumbnail regenerated!' : 'Regenerate thumbnail'}
+        >
+          {#if regeneratingThumbnail}
+            <svg class="w-5 h-5 viewer-icon-outlined animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          {:else if thumbnailRegenerateSuccess}
+            <svg class="w-5 h-5 viewer-icon-outlined text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          {:else}
+            <svg class="w-5 h-5 viewer-icon-outlined" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           {/if}
         </button>

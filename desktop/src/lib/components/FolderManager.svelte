@@ -106,7 +106,11 @@
   async function handleRescanFolder(id) {
     const result = await folderStore.rescanFolder(id);
     if (result.success) {
-      await localAssetStore.loadAssets();
+      // Add a small delay to ensure database writes are complete
+      // The scan completes but assets might still be committing to DB
+      setTimeout(async () => {
+        await localAssetStore.loadAssets();
+      }, 500);
     }
   }
 

@@ -92,14 +92,67 @@ export class FileWatcherService {
       return;
     }
 
-    // Remove all assets from this folder
-    const assets = this.dbService.getAssetsByFolder(folder.id!);
-    for (const asset of assets) {
-      this.dbService.deleteAsset(asset.id!);
-    }
+    console.log(`[Rescan] Starting rescan of folder: ${folderPath}`);
 
-    // Rescan
-    await this.scanFolder(folderPath, folder.id!);
+    // First, scan for files WITHOUT deleting anything (safer approach)
+    const abortController = new AbortController();
+    this.activeScanControllers.set(folderPath, abortController);
+
+    try {
+      // Discover all files in the folder
+      console.log(`[Rescan] Discovering files in: ${folderPath}`);
+      const allFiles = await this.getAllFilesParallel(folderPath, abortController.signal);
+
+      if (abortController.signal.aborted) {
+        console.log('[Rescan] Scan was aborted');
+        return;
+      }
+
+      // Filter for supported model files
+      const modelFiles = allFiles.filter(file =>
+        this.supportedExtensions.includes(path.extname(file).toLowerCase())
+      );
+
+      console.log(`[Rescan] Found ${modelFiles.length} model files in ${folderPath}`);
+      console.log(`[Rescan] Supported extensions:`, this.supportedExtensions);
+
+      // Remove all existing assets from this folder (database entries only)
+      const existingAssets = this.dbService.getAssetsByFolder(folder.id!);
+      console.log(`[Rescan] Removing ${existingAssets.length} existing database entries`);
+
+      for (const asset of existingAssets) {
+        this.dbService.deleteAsset(asset.id!);
+      }
+
+      // Re-add the found model files to database
+      if (modelFiles.length > 0) {
+        console.log(`[Rescan] Processing ${modelFiles.length} model files...`);
+        await this.processModelsBatch(modelFiles, folder.id!, folderPath, abortController.signal);
+      } else {
+        console.log(`[Rescan] No model files found to process`);
+      }
+
+      if (!abortController.signal.aborted) {
+        this.dbService.markFolderScanned(folder.id!);
+
+        // Send completion notification
+        this.sendProgress({
+          folderId: folder.id!,
+          folderPath,
+          totalFiles: modelFiles.length,
+          processedFiles: modelFiles.length,
+          currentFile: '',
+          foundModels: modelFiles.length
+        });
+      }
+
+      console.log(`[Rescan] Complete: ${modelFiles.length} models processed`);
+    } catch (error) {
+      console.error(`[Rescan] Error during rescan of ${folderPath}:`, error);
+      throw error; // Re-throw so the frontend knows it failed
+    } finally {
+      this.activeScanControllers.delete(folderPath);
+    }
   }
 
   private async scanFolder(folderPath: string, folderId: number): Promise<void> {
