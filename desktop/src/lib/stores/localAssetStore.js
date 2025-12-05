@@ -12,7 +12,9 @@ function createLocalAssetStore() {
     selectedFileTypes: [],
     viewMode: 'grid', // 'grid' or 'grouped'
     expandedFolders: {}, // Track which folders are expanded (path -> boolean)
-    thumbnailProgress: { current: 0, total: 0, isGenerating: false } // Track thumbnail generation
+    thumbnailProgress: { current: 0, total: 0, isGenerating: false }, // Track thumbnail generation
+    regeneratingAll: false, // Track when bulk regeneration is happening
+    regeneratingAssets: new Set() // Track which specific assets are being regenerated
   });
 
   let unsubscribeAdded = null;
@@ -123,6 +125,13 @@ function createLocalAssetStore() {
         // Get all current assets
         const assets = await window.electronAPI.getAssets();
 
+        // Set regeneratingAll flag to show spinners on all thumbnails
+        update(state => ({
+          ...state,
+          regeneratingAll: true,
+          regeneratingAssets: new Set(assets.map(a => a.id))
+        }));
+
         // Generate thumbnails for all assets
         let successCount = 0;
         let failCount = 0;
@@ -130,18 +139,72 @@ function createLocalAssetStore() {
         for (const asset of assets) {
           try {
             const thumbnailData = await generateThumbnail(asset.id, asset.filePath);
-            await window.electronAPI.saveThumbnail(asset.id, thumbnailData);
 
-            successCount++;
+            if (thumbnailData) {
+              await window.electronAPI.saveThumbnail(asset.id, thumbnailData);
+              successCount++;
+
+              // Remove this asset from regenerating set and trigger update
+              update(state => {
+                const newRegeneratingAssets = new Set(state.regeneratingAssets);
+                newRegeneratingAssets.delete(asset.id);
+                return {
+                  ...state,
+                  regeneratingAssets: newRegeneratingAssets,
+                  // Trigger asset update to refresh thumbnail
+                  assets: state.assets.map(a =>
+                    a.id === asset.id
+                      ? { ...a, _thumbnailUpdated: Date.now() }
+                      : a
+                  )
+                };
+              });
+            } else {
+              failCount++;
+              // Still remove from regenerating set even if failed
+              update(state => {
+                const newRegeneratingAssets = new Set(state.regeneratingAssets);
+                newRegeneratingAssets.delete(asset.id);
+                return {
+                  ...state,
+                  regeneratingAssets: newRegeneratingAssets
+                };
+              });
+            }
           } catch (error) {
             failCount++;
             console.error(`✗ Error generating thumbnail for ${asset.name}:`, error);
+
+            // Remove from regenerating set on error
+            update(state => {
+              const newRegeneratingAssets = new Set(state.regeneratingAssets);
+              newRegeneratingAssets.delete(asset.id);
+              return {
+                ...state,
+                regeneratingAssets: newRegeneratingAssets
+              };
+            });
           }
         }
+
+        // Clear regeneratingAll flag when done
+        update(state => ({
+          ...state,
+          regeneratingAll: false,
+          regeneratingAssets: new Set()
+        }));
 
         return { success: true, total: assets.length, successful: successCount, failed: failCount };
       } catch (error) {
         console.error('Error regenerating thumbnails:', error);
+
+        // Clear flags on error
+        update(state => ({
+          ...state,
+          regeneratingAll: false,
+          regeneratingAssets: new Set()
+        }));
+
         return { success: false, error: error.message };
       }
     },

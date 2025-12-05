@@ -19,7 +19,7 @@
   async function handleRegenerateThumbnails() {
     if (isRegenerating) return;
 
-    const confirmed = confirm('This will regenerate all thumbnails with improved lighting and framing. This may take a few minutes. Continue?');
+    const confirmed = confirm('This will regenerate all thumbnails with improved lighting and framing. You\'ll see thumbnails update in real-time. Continue?');
     if (!confirmed) return;
 
     isRegenerating = true;
@@ -27,9 +27,7 @@
     try {
       const result = await localAssetStore.regenerateAllThumbnails();
       if (result.success) {
-        alert(`Thumbnail regeneration complete!\n\n✓ Successful: ${result.successful}\n✗ Failed: ${result.failed}\n\nRefresh the page to see the updated thumbnails.`);
-        // Reload the page to show new thumbnails
-        window.location.reload();
+        alert(`Thumbnail regeneration complete!\n\n✓ Successful: ${result.successful}\n✗ Failed: ${result.failed}\n\nAll thumbnails have been updated!`);
       } else {
         alert(`Error regenerating thumbnails: ${result.error}`);
       }

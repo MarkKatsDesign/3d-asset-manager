@@ -115,7 +115,7 @@ export async function generateThumbnail(assetId, filePath = '', width = 400, hei
     renderer.setClearColor(0x000000, 0); // Transparent background
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0; // Balanced exposure for natural lighting
+    renderer.toneMappingExposure = 1.3; // Increased exposure for brighter thumbnails
 
     // Create scene
     const scene = new THREE.Scene();
@@ -139,12 +139,12 @@ export async function generateThumbnail(assetId, filePath = '', width = 400, hei
     // Dispose the temporary texture
     envMapTexture.dispose();
 
-    // Add subtle supplementary lights for definition (environment map provides main lighting)
-    const keyLight = new THREE.DirectionalLight(0xffffff, 0.3);
+    // Add supplementary lights for better definition and brightness
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.6);
     keyLight.position.set(5, 8, 5);
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xffffff, 0.15);
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.35);
     fillLight.position.set(-5, 3, 5);
     scene.add(fillLight);
 
@@ -216,7 +216,7 @@ export async function generateThumbnail(assetId, filePath = '', width = 400, hei
                     color: color,
                     metalness: 0.4,
                     roughness: 0.5,
-                    envMapIntensity: 0.8,
+                    envMapIntensity: 1.2,
                     flatShading: false
                   });
 
@@ -322,7 +322,7 @@ export async function generateThumbnail(assetId, filePath = '', width = 400, hei
               color: 0x666666,      // Medium gray for better contrast
               metalness: 0.4,       // Balanced metalness
               roughness: 0.5,       // Balanced roughness
-              envMapIntensity: 0.8  // Reduced reflection intensity
+              envMapIntensity: 1.2  // Increased reflection for better lighting
             });
             const mesh = new THREE.Mesh(geometry, material);
             onLoad(mesh);

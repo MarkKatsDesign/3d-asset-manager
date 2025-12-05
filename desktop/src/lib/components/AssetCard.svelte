@@ -20,6 +20,15 @@
   let contextMenuY = 0;
   let regeneratingThumbnail = false;
 
+  // Subscribe to store to track bulk regeneration
+  let storeState;
+  localAssetStore.subscribe(state => {
+    storeState = state;
+  });
+
+  // Reactive statement to check if this specific asset is being regenerated
+  $: isRegeneratingThisAsset = storeState?.regeneratingAssets?.has(asset.id) || false;
+
   onMount(async () => {
     // Load thumbnail from local database
     await loadThumbnail();
@@ -57,9 +66,22 @@
     return () => clearInterval(interval);
   });
 
-  // Reactive statement: reload thumbnail when asset changes
+  // Reactive statement: reload thumbnail when asset changes or when regeneration completes
   $: if (asset && asset.id) {
     loadThumbnail();
+  }
+
+  // When bulk regeneration starts for this asset, clear the thumbnail to show spinner
+  $: if (isRegeneratingThisAsset && !isLoadingThumbnail) {
+    isLoadingThumbnail = true;
+    thumbnailUrl = null;
+  }
+
+  // When bulk regeneration completes for this asset, reload the thumbnail
+  $: if (!isRegeneratingThisAsset && asset._thumbnailUpdated) {
+    loadThumbnail().then(() => {
+      isLoadingThumbnail = false;
+    });
   }
 
   async function loadThumbnail() {
@@ -206,7 +228,7 @@
 >
   <!-- Thumbnail -->
   <div class="relative aspect-video overflow-hidden bg-gradient-to-br from-gray-800/50 to-gray-900/50">
-    {#if thumbnailUrl && !isLoadingThumbnail}
+    {#if thumbnailUrl && !isLoadingThumbnail && !isRegeneratingThisAsset}
       <img
         src={thumbnailUrl}
         alt={asset.name}
@@ -215,7 +237,7 @@
     {:else}
       <!-- Loading Spinner -->
       <div class="absolute inset-0 flex flex-col items-center justify-center gap-4">
-        {#if isLoadingThumbnail}
+        {#if isLoadingThumbnail || isRegeneratingThisAsset}
           <!-- Animated spinner -->
           <div class="relative w-16 h-16">
             <!-- Outer ring -->
