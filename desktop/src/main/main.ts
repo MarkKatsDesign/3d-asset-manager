@@ -18,12 +18,23 @@
 
 import { app, BrowserWindow, ipcMain, dialog, shell, protocol } from "electron";
 import * as path from "path";
+import { fileURLToPath } from "url";
 import { DatabaseService } from "./services/database.js";
 import { FileWatcherService } from "./services/fileWatcher.js";
 import { ThumbnailService } from "./services/thumbnail.js";
 
-// In CommonJS, __dirname is already available
-declare const __dirname: string;
+// Define __dirname for ES modules (CommonJS has it built-in)
+const getDirname = (): string => {
+  try {
+    // @ts-ignore - import.meta is available in ESM
+    return path.dirname(fileURLToPath(import.meta.url));
+  } catch {
+    // Fallback for CommonJS (development builds) - __dirname is a global
+    // @ts-ignore - __dirname exists in CommonJS
+    return typeof __dirname !== 'undefined' ? __dirname : process.cwd();
+  }
+};
+const __dirname: string = getDirname();
 
 let mainWindow: BrowserWindow | null = null;
 let dbService: DatabaseService;
