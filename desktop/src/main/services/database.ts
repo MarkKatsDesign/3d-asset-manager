@@ -175,15 +175,43 @@ export class DatabaseService {
     const updates: string[] = [];
     const values: any[] = [];
 
+    // Input validation
     if (data.name !== undefined) {
+      if (typeof data.name !== 'string' || data.name.length === 0) {
+        throw new Error('Asset name must be a non-empty string');
+      }
+      if (data.name.length > 255) {
+        throw new Error('Asset name must be 255 characters or less');
+      }
       updates.push('name = ?');
       values.push(data.name);
     }
     if (data.description !== undefined) {
+      if (data.description !== null && typeof data.description !== 'string') {
+        throw new Error('Asset description must be a string or null');
+      }
+      if (data.description && data.description.length > 5000) {
+        throw new Error('Asset description must be 5000 characters or less');
+      }
       updates.push('description = ?');
       values.push(data.description);
     }
     if (data.tags !== undefined) {
+      if (!Array.isArray(data.tags)) {
+        throw new Error('Asset tags must be an array');
+      }
+      if (data.tags.length > 50) {
+        throw new Error('Cannot have more than 50 tags');
+      }
+      // Validate each tag
+      for (const tag of data.tags) {
+        if (typeof tag !== 'string' || tag.length === 0) {
+          throw new Error('Each tag must be a non-empty string');
+        }
+        if (tag.length > 100) {
+          throw new Error('Each tag must be 100 characters or less');
+        }
+      }
       updates.push('tags = ?');
       values.push(JSON.stringify(data.tags));
     }

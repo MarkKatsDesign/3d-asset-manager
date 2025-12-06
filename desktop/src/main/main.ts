@@ -74,6 +74,8 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      webSecurity: true,
+      allowRunningInsecureContent: false,
     },
     icon: iconPath,
     title: "Forma",
@@ -354,11 +356,29 @@ ipcMain.handle("background:selectFile", async () => {
 
 // App lifecycle
 app.whenReady().then(async () => {
-  // Register the protocol handler
-  protocol.registerFileProtocol('local-file', (request, callback) => {
+  // Register the protocol handler with path validation
+  protocol.registerFileProtocol('local-file', async (request, callback) => {
     const url = request.url.replace('local-file://', '');
     const decodedPath = decodeURIComponent(url);
+
     try {
+      // Import fs for validation
+      const fs = await import('fs/promises');
+
+      // Validate that the path exists and is a file
+      const stats = await fs.stat(decodedPath);
+      if (!stats.isFile()) {
+        console.error('Path is not a file:', decodedPath);
+        return callback({ error: -2 } as any);
+      }
+
+      // Additional security: Ensure path doesn't contain suspicious patterns
+      const normalizedPath = path.normalize(decodedPath);
+      if (normalizedPath !== decodedPath) {
+        console.error('Suspicious path detected:', decodedPath);
+        return callback({ error: -2 } as any);
+      }
+
       return callback(decodedPath);
     } catch (error) {
       console.error('Error loading local file:', error);

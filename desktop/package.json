@@ -17,20 +17,22 @@
     "build:electron": "tsc -p tsconfig.electron.json",
     "package": "npm run build && electron-builder",
     "package:win": "npm run build && electron-builder --win",
-    "start": "electron ."
+    "start": "electron .",
+    "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
-    "better-sqlite3": "^9.2.2",
+    "better-sqlite3": "^12.5.0",
     "chokidar": "^3.5.3",
     "pocketbase": "^0.21.1",
     "three": "^0.160.0"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.1",
     "@sveltejs/vite-plugin-svelte": "^3.0.1",
     "@types/better-sqlite3": "^7.6.8",
     "@types/node": "^20.10.6",
     "autoprefixer": "^10.4.16",
-    "electron": "^28.1.0",
+    "electron": "^39.2.6",
     "electron-builder": "^24.13.3",
     "electron-rebuild": "^3.2.9",
     "esbuild": "^0.27.0",
