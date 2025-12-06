@@ -1468,7 +1468,7 @@
 <!-- Modal Overlay -->
 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 <div
-  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+  class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
   on:click={handleClose}
   on:keydown={handleOverlayKeydown}
   role="button"

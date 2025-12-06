@@ -60,7 +60,7 @@
   /* Glass card text for light theme - stronger/darker for transparent cards */
   body[data-theme="arctic"] .glass-card label,
   body[data-theme="arctic"] .glass-card p:not(.gradient-text),
-  body[data-theme="arctic"] .glass-card span {
+  body[data-theme="arctic"] .glass-card span:not(.folder-badge):not(.folder-badge *) {
     color: rgb(0, 0, 0) !important; /* Pure black for better contrast */
     font-weight: 500; /* Medium weight for better readability */
   }
@@ -78,10 +78,18 @@
     -webkit-background-clip: text !important;
   }
 
-  body[data-theme="arctic"] .glass-card .text-sm:not(.text-white\/60):not(.text-white\/40),
-  body[data-theme="arctic"] .glass-card .text-xs:not(.text-white\/60):not(.text-white\/40) {
+  body[data-theme="arctic"] .glass-card .text-sm:not(.text-white\/60):not(.text-white\/40):not(.folder-badge):not(.folder-badge *),
+  body[data-theme="arctic"] .glass-card .text-xs:not(.text-white\/60):not(.text-white\/40):not(.folder-badge):not(.folder-badge *) {
     color: rgb(55, 65, 81) !important; /* gray-700 - darker */
     font-weight: 500; /* Medium weight */
+  }
+
+  /* Override text-xs and font-semibold inside folder badge */
+  body[data-theme="arctic"] .glass-card .folder-badge.text-xs,
+  body[data-theme="arctic"] .glass-card .folder-badge.font-semibold,
+  body[data-theme="arctic"] .folder-badge.text-xs,
+  body[data-theme="arctic"] .folder-badge.font-semibold {
+    color: #ffffff !important;
   }
 
   /* Footer text - keep white for better aesthetics */
@@ -229,7 +237,35 @@
     color: rgb(107, 114, 128) !important; /* gray-500 - for icons */
   }
 
-  /* Folder badge - keep text white for Arctic theme */
+  /* Folder badge - keep text white for Arctic theme - HIGHEST PRIORITY */
+  body[data-theme="arctic"] div.folder-badge,
+  body[data-theme="arctic"] .folder-badge {
+    color: #ffffff !important;
+  }
+
+  body[data-theme="arctic"] div.folder-badge *,
+  body[data-theme="arctic"] .folder-badge * {
+    color: #ffffff !important;
+  }
+
+  body[data-theme="arctic"] div.folder-badge svg,
+  body[data-theme="arctic"] .folder-badge svg {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+  }
+
+  body[data-theme="arctic"] .glass-card div.folder-badge,
+  body[data-theme="arctic"] .glass-card .folder-badge,
+  body[data-theme="arctic"] .glass-card .folder-badge span,
+  body[data-theme="arctic"] .glass-card .folder-badge * {
+    color: #ffffff !important;
+  }
+
+  body[data-theme="arctic"] .glass-card div.folder-badge.bg-purple-600,
+  body[data-theme="arctic"] .glass-card .folder-badge.bg-purple-600 {
+    color: #ffffff !important;
+  }
+
   body[data-theme="arctic"] .bg-purple-600.text-white {
     color: white !important;
   }

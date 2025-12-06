@@ -127,29 +127,34 @@
   </div>
 {/if}
 
-<main class="min-h-screen {background?.type === 'gradient' ? `bg-gradient-to-br ${theme?.colors.bgPrimary}` : ''} {theme?.colors.textPrimary} transition-colors duration-500" style="font-family: '{theme?.font}', system-ui, sans-serif;">
+<main class="min-h-screen relative {theme?.colors.textPrimary} transition-colors duration-500" style="font-family: '{theme?.font}', system-ui, sans-serif;">
+  <!-- Background gradient layer that extends full height -->
+  {#if background?.type === 'gradient'}
+    <div class="fixed inset-0 -z-20 bg-gradient-to-br {theme?.colors.bgPrimary}"></div>
+  {/if}
+
   <!-- Main Application -->
   <Navbar on:manageFolders={handleManageFolders} on:customizeBackground={handleCustomizeBackground} />
 
-  <div class="pt-20 pb-8 px-8 max-w-[1920px] mx-auto">
+  <div class="pt-24 pb-12 px-8 max-w-[1920px] mx-auto">
     <!-- Compact Single-Line Header -->
-    <div class="mb-6 animate-fade-in">
+    <div class="mb-8 animate-fade-in">
       <!-- Main Header Row -->
-      <div class="flex items-center justify-between gap-4 mb-4">
+      <div class="flex items-center justify-between gap-6 mb-6">
         <!-- Left: Title -->
-        <div class="flex items-center gap-4 min-w-0">
+        <div class="flex items-center gap-6 min-w-0">
           <h1 class="text-2xl md:text-3xl font-bold gradient-text whitespace-nowrap">
             Your 3D Assets
           </h1>
           <!-- Inline Stats -->
-          <div class="hidden lg:flex items-center gap-3 text-sm {theme?.colors.textMuted}">
-            <span class="glass-card px-3 py-1">
+          <div class="hidden lg:flex items-center gap-4 text-sm {theme?.colors.textMuted}">
+            <span class="glass-card px-4 py-2">
               <span class="font-semibold gradient-text">{$localAssetStore.assets.length}</span> total
             </span>
-            <span class="glass-card px-3 py-1">
+            <span class="glass-card px-4 py-2">
               <span class="font-semibold gradient-text">{localAssetStore.getFilteredAssets($localAssetStore).length}</span> filtered
             </span>
-            <span class="glass-card px-3 py-1">
+            <span class="glass-card px-4 py-2">
               <span class="font-semibold gradient-text">{$folderStore.folders.length}</span> folders
             </span>
           </div>

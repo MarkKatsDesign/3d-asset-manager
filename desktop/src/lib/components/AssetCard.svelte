@@ -300,7 +300,7 @@
     <!-- Folder badge (top-right, theme-aware with glassmorphism) -->
     {#if folderBadge}
       <div class="absolute top-3 right-3">
-        <div class="folder-badge {theme?.colors.accentPrimary} px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 text-white">
+        <div class="folder-badge {theme?.colors.accentPrimary} px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1" style="color: white !important;">
           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
           </svg>
@@ -404,18 +404,33 @@
     box-shadow:
       0 8px 32px 0 rgba(0, 0, 0, 0.2),
       inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+    color: #ffffff !important;
   }
 
   /* Theme-specific colors for glassmorphism */
   .folder-badge.bg-indigo-600 {
     background-color: rgba(79, 70, 229, 0.3) !important;
+    color: #ffffff !important;
   }
 
   .folder-badge.bg-purple-600 {
     background-color: rgba(147, 51, 234, 0.3) !important;
+    color: #ffffff !important;
   }
 
   .folder-badge.bg-violet-500 {
     background-color: rgba(139, 92, 246, 0.3) !important;
+    color: #ffffff !important;
+  }
+
+  /* Ensure SVG icon in folder badge is also white */
+  .folder-badge svg {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+  }
+
+  /* Ensure all text content inside folder badge is white */
+  .folder-badge * {
+    color: #ffffff !important;
   }
 </style>
