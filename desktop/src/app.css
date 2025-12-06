@@ -60,7 +60,7 @@
   /* Glass card text for light theme - stronger/darker for transparent cards */
   body[data-theme="arctic"] .glass-card label,
   body[data-theme="arctic"] .glass-card p:not(.gradient-text),
-  body[data-theme="arctic"] .glass-card span:not(.folder-badge):not(.folder-badge *) {
+  body[data-theme="arctic"] .glass-card span:not(.folder-badge):not(.folder-badge *):not(.gradient-text) {
     color: rgb(0, 0, 0) !important; /* Pure black for better contrast */
     font-weight: 500; /* Medium weight for better readability */
   }
@@ -71,15 +71,18 @@
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); /* Subtle shadow for readability */
   }
 
-  /* Preserve gradient text in glass cards */
+  /* Preserve gradient text in glass cards - use vibrant purple for visibility */
   body[data-theme="arctic"] .glass-card .gradient-text {
-    color: transparent !important; /* Let gradient show through */
-    background-clip: text !important;
-    -webkit-background-clip: text !important;
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    background-clip: initial !important;
+    -webkit-text-fill-color: initial !important;
+    color: rgb(147, 51, 234) !important; /* Vibrant purple */
+    font-weight: 700 !important;
   }
 
-  body[data-theme="arctic"] .glass-card .text-sm:not(.text-white\/60):not(.text-white\/40):not(.folder-badge):not(.folder-badge *),
-  body[data-theme="arctic"] .glass-card .text-xs:not(.text-white\/60):not(.text-white\/40):not(.folder-badge):not(.folder-badge *) {
+  body[data-theme="arctic"] .glass-card .text-sm:not(.text-white\/60):not(.text-white\/40):not(.folder-badge):not(.folder-badge *):not(.gradient-text),
+  body[data-theme="arctic"] .glass-card .text-xs:not(.text-white\/60):not(.text-white\/40):not(.folder-badge):not(.folder-badge *):not(.gradient-text) {
     color: rgb(55, 65, 81) !important; /* gray-700 - darker */
     font-weight: 500; /* Medium weight */
   }
@@ -341,10 +344,14 @@
     @apply bg-clip-text text-transparent;
   }
 
-  /* Arctic theme - darker gradient for better white text visibility */
+  /* Arctic theme - solid purple for gradient text (better visibility on light backgrounds) */
   body[data-theme="arctic"] .gradient-text {
-    @apply bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-700;
-    @apply bg-clip-text text-transparent;
+    background: none !important;
+    -webkit-background-clip: initial !important;
+    background-clip: initial !important;
+    -webkit-text-fill-color: initial !important;
+    color: rgb(147, 51, 234) !important; /* Vibrant purple */
+    font-weight: 700 !important;
   }
 
   /* Graphite theme - lighter gradient for dark background (consistent with Neon) */
