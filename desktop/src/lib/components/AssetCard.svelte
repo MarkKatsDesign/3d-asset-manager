@@ -30,6 +30,14 @@
   $: isRegeneratingThisAsset = storeState?.regeneratingAssets?.has(asset.id) || false;
 
   onMount(async () => {
+    // Check if file is too large (>500MB) - don't wait for thumbnail
+    const fileSizeMB = asset.fileSize / (1024 * 1024);
+    if (fileSizeMB > 500) {
+      isLoadingThumbnail = false;
+      // Don't start checking interval for large files
+      return;
+    }
+
     // Load thumbnail from local database
     await loadThumbnail();
 
@@ -162,8 +170,14 @@
     return folders;
   }
 
+  function isLargeFile() {
+    const fileSizeMB = asset.fileSize / (1024 * 1024);
+    return fileSizeMB > 500;
+  }
+
   $: folderBadge = getFolderBadge();
   $: breadcrumb = getBreadcrumbPath();
+  $: largeFile = isLargeFile();
 
   function handleContextMenu(e) {
     e.preventDefault();
@@ -255,6 +269,9 @@
           <svg class="w-20 h-20 text-white/30 group-hover:text-white/50 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
           </svg>
+          {#if largeFile}
+            <p class="text-white/50 text-xs font-medium mt-2">Large File (No Preview)</p>
+          {/if}
         {/if}
       </div>
     {/if}
