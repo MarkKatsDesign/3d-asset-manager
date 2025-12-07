@@ -75,6 +75,11 @@ _Customize the app with images or videos as backgrounds, with adjustable opacity
   - Custom background colors with presets
   - Grid helper toggle
   - Dynamic card styling (adapts to light/dark backgrounds)
+- **Customizable UI**
+  - Three theme options: Neon (purple), Arctic (light), Graphite (dark)
+  - Custom app backgrounds (images or videos)
+  - Adjustable opacity and blur for backgrounds
+  - Video backgrounds with playback controls
 - **File Explorer Integration** - "Show in Explorer" to quickly locate files
 - **Material Support** - Full PBR material rendering with textures
 - **Geometry-Only Formats** - Special handling for formats without textures (OBJ, STL)
@@ -135,6 +140,44 @@ The application will launch automatically. On first run:
 2. Select a directory containing 3D models (.glb, .obj, .fbx, .stl)
 3. Forma will automatically scan and generate thumbnails
 4. Click any asset to preview in 3D!
+
+## Usage Guide
+
+### Getting Started
+
+1. **Add Folders** - Click "Manage Folders" to add directories containing 3D models
+2. **Auto-Discovery** - The app will automatically scan and index all supported files
+3. **Browse & Preview** - Click any asset card to view the 3D model with interactive controls
+4. **Search & Filter** - Use the search bar and filter toolbar to find specific models
+5. **Tree View** - Toggle tree view to organize assets by folder structure
+6. **Manage Tags** - Add tags to categorize your assets
+7. **Add Notes** - Write descriptions that auto-save for each asset
+
+### 3D Viewer Controls
+
+- **Orbit** - Left click + drag to rotate camera around model
+- **Pan** - Right click + drag to move view
+- **Zoom** - Scroll wheel to zoom in/out
+- **Auto-Rotate** - Click rotate icon to enable automatic spinning with adjustable speed
+- **Screenshot** - Capture high-quality renders at HD (1920x1080), 2K (2560x1440), or 4K (3840x2160)
+
+### Environment & Lighting
+
+1. **Upload Custom HDRI** - Click environment icon → Upload HDRI (.hdr, .exr, .jpg, .png)
+2. **Adjust Intensity** - Use slider (0-3.0) or type exact value for precise control
+3. **Rotate Environment** - Drag HDRI Rotation slider (0-360°) to find perfect lighting angle
+4. **Background Options**
+   - Toggle "Show HDRI Background" to display environment or use for lighting only
+   - Toggle "Transparent Background" for clean screenshots with no background
+   - Choose from 5 color presets or use custom color picker
+   - Toggle grid helper for reference
+5. **Technical Details** - Click "Show Details" to view polygon count, vertices, meshes, materials, and texture stats
+
+### App Customization
+
+- **Themes** - Choose from Neon (purple), Arctic (light), or Graphite (dark) themes
+- **Custom Backgrounds** - Set images or videos as app backgrounds with opacity and blur controls
+- **View Modes** - Switch between grid view and grouped tree view
 
 ## Development
 
@@ -221,11 +264,11 @@ desktop/
 
 - [ ] macOS and Linux support
 - [ ] Batch operations (rename, tag multiple assets)
-- [ ] Model statistics (polygon count, texture information)
 - [ ] Collection/project organization
-- [ ] Advanced filtering and sorting
 - [ ] Import/export asset catalogs
-- [ ] Optional cloud sync (as backup feature)
+- [ ] Asset comparison view (side-by-side)
+- [ ] Animation playback for animated GLTF/GLB models
+- [ ] Optional cloud backup feature
 
 ## Contributing
 
