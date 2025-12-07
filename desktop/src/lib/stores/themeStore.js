@@ -142,11 +142,54 @@ function createBackgroundStore() {
     pauseWhenInactive: true,
   };
 
+  // Fix malformed URLs from old versions
+  function fixMalformedUrl(url) {
+    if (!url || typeof url !== 'string') return url;
+
+    // Fix file:// URLs - convert to app-media://
+    if (url.startsWith('file://')) {
+      const filePath = url.replace('file://', '').replace(/\\/g, '/');
+      return `app-media:///${filePath}`;
+    }
+
+    // Fix app-media:// URLs missing drive letter colon
+    // Example: app-media://d/projects/ or app-media:///d/projects/
+    if (url.startsWith('app-media://')) {
+      let path = url.replace('app-media://', '');
+
+      // Check if drive letter colon is missing: /d/projects/ or d/projects/
+      if (/^\/?[a-zA-Z]\//.test(path)) {
+        const hasLeadingSlash = path.startsWith('/');
+        const driveLetterIndex = hasLeadingSlash ? 1 : 0;
+        const driveLetter = path.charAt(driveLetterIndex).toUpperCase();
+        const restOfPath = path.substring(driveLetterIndex + 1);
+        path = `/${driveLetter}:${restOfPath}`;
+        return `app-media://${path}`;
+      }
+    }
+
+    return url;
+  }
+
   // Load saved background settings from localStorage
-  const savedBackground =
+  let savedBackground =
     typeof window !== "undefined"
       ? JSON.parse(localStorage.getItem("background") || "null")
       : null;
+
+  // Fix malformed URLs in saved background
+  if (savedBackground && savedBackground.source) {
+    const fixedSource = fixMalformedUrl(savedBackground.source);
+    if (fixedSource !== savedBackground.source) {
+      console.log('Migrating URL from:', savedBackground.source);
+      console.log('Migrating URL to:', fixedSource);
+      savedBackground.source = fixedSource;
+      // Save the fixed URL back to localStorage
+      if (typeof window !== "undefined") {
+        localStorage.setItem("background", JSON.stringify(savedBackground));
+      }
+    }
+  }
 
   const { subscribe, set, update } = writable(
     savedBackground || defaultBackground
