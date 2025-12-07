@@ -16,7 +16,15 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { app, BrowserWindow, ipcMain, dialog, shell, protocol } from "electron";
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  shell,
+  protocol,
+  net,
+} from "electron";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import { DatabaseService } from "./services/database.js";
@@ -31,7 +39,7 @@ const getDirname = (): string => {
   } catch {
     // Fallback for CommonJS (development builds) - __dirname is a global
     // @ts-ignore - __dirname exists in CommonJS
-    return typeof __dirname !== 'undefined' ? __dirname : process.cwd();
+    return typeof __dirname !== "undefined" ? __dirname : process.cwd();
   }
 };
 const __dirname: string = getDirname();
@@ -43,17 +51,18 @@ let thumbnailService: ThumbnailService;
 
 const isDev = process.env.NODE_ENV === "development";
 
-// Register custom protocol scheme as privileged before app is ready
+// Register custom protocol as standard before app is ready
 protocol.registerSchemesAsPrivileged([
   {
-    scheme: 'local-file',
+    scheme: "app-media",
     privileges: {
+      standard: true,
       secure: true,
       supportFetchAPI: true,
-      bypassCSP: true,
-      stream: true
-    }
-  }
+      corsEnabled: true,
+      stream: true,
+    },
+  },
 ]);
 
 function createWindow() {
@@ -103,7 +112,11 @@ async function initializeServices() {
   thumbnailService = new ThumbnailService(dbService);
 
   // Pass mainWindow to fileWatcherService for progress updates
-  fileWatcherService = new FileWatcherService(dbService, thumbnailService, mainWindow!);
+  fileWatcherService = new FileWatcherService(
+    dbService,
+    thumbnailService,
+    mainWindow!
+  );
 
   // Load watched folders from database and start watching
   const watchedFolders = dbService.getWatchedFolders();
@@ -343,12 +356,16 @@ ipcMain.handle("background:selectFile", async () => {
 
   if (!result.canceled && result.filePaths.length > 0) {
     const filePath = result.filePaths[0];
-    // Convert to custom protocol URL
-    const customUrl = `local-file://${encodeURIComponent(filePath)}`;
+    // Convert to app-media:// protocol URL (custom protocol that works with webSecurity enabled)
+    // On Windows, convert C:\path\to\file.mp4 to app-media:///C:/path/to/file.mp4
+    // Use three slashes to avoid URL parsing treating C: as port
+    const normalizedPath = filePath.replace(/\\/g, "/");
+    const encodedPath = encodeURI(normalizedPath);
+    const fileUrl = `app-media:///${encodedPath}`;
     return {
       success: true,
       cancelled: false,
-      filePath: customUrl,
+      filePath: fileUrl,
     };
   }
   return { success: true, cancelled: true, filePath: null };
@@ -356,34 +373,29 @@ ipcMain.handle("background:selectFile", async () => {
 
 // App lifecycle
 app.whenReady().then(async () => {
-  // Register the protocol handler with path validation
-  protocol.registerFileProtocol('local-file', async (request, callback) => {
-    const url = request.url.replace('local-file://', '');
-    const decodedPath = decodeURIComponent(url);
+  // Register protocol handler for serving local media files
+  protocol.handle("app-media", (request) => {
+    // Extract path from app-media:///C:/path/to/file.mp4
+    // Remove protocol: app-media:///C:/path/to/file.mp4 -> /C:/path/to/file.mp4
+    let url = request.url.replace("app-media://", "");
+    let filePath = decodeURI(url);
 
-    try {
-      // Import fs for validation
-      const fs = await import('fs/promises');
-
-      // Validate that the path exists and is a file
-      const stats = await fs.stat(decodedPath);
-      if (!stats.isFile()) {
-        console.error('Path is not a file:', decodedPath);
-        return callback({ error: -2 } as any);
-      }
-
-      // Additional security: Ensure path doesn't contain suspicious patterns
-      const normalizedPath = path.normalize(decodedPath);
-      if (normalizedPath !== decodedPath) {
-        console.error('Suspicious path detected:', decodedPath);
-        return callback({ error: -2 } as any);
-      }
-
-      return callback(decodedPath);
-    } catch (error) {
-      console.error('Error loading local file:', error);
-      return callback({ error: -2 } as any);
+    // Fix: If drive letter colon is missing (old URLs), reconstruct it
+    // Example: d/projects/... -> /D:/projects/... OR /d/projects/... -> /D:/projects/...
+    if (process.platform === "win32" && /^\/?[a-zA-Z]\//.test(filePath)) {
+      const hasLeadingSlash = filePath.startsWith('/');
+      const driveLetterIndex = hasLeadingSlash ? 1 : 0;
+      const driveLetter = filePath.charAt(driveLetterIndex).toUpperCase();
+      const restOfPath = filePath.substring(driveLetterIndex + 1);
+      filePath = `/${driveLetter}:${restOfPath}`;
     }
+
+    // Construct proper file:/// URL
+    // On Windows: file:///C:/path/to/file.mp4
+    const fileUrl = `file://${filePath}`;
+
+    // Return a streaming response using net.fetch with file:// protocol
+    return net.fetch(fileUrl);
   });
 
   await initializeServices();

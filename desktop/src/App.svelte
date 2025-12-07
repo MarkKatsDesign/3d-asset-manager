@@ -74,7 +74,28 @@
 
   function handleWindowFocus() {
     if (background?.type === 'video' && background?.videoEnabled && videoElement) {
-      videoElement.play();
+      // Only try to play if video is ready (readyState > 0)
+      if (videoElement.readyState > 0) {
+        videoElement.play().catch(err => {
+          // Silently ignore errors - video might not be loaded yet
+        });
+      }
+    }
+  }
+
+  function handleVideoError(event) {
+    // Video failed to load - log for debugging
+    if (import.meta.env.DEV) {
+      console.error('Video load error:', videoElement?.src);
+    }
+  }
+
+  function handleVideoLoaded() {
+    // Video is loaded and ready - ensure it plays
+    if (videoElement && background?.videoEnabled !== false) {
+      videoElement.play().catch(() => {
+        // Ignore autoplay errors
+      });
     }
   }
 
@@ -108,16 +129,23 @@
 <!-- Custom Background Layer -->
 {#if background?.type !== 'gradient' && background?.source}
   <div class="fixed inset-0 -z-10">
-    {#if background.type === 'video' && background.videoEnabled}
-      <video
-        bind:this={videoElement}
-        src={background.source}
-        autoplay
-        loop
-        muted
-        class="w-full h-full object-cover"
-        style="opacity: {background.opacity}; filter: blur({background.blur}px);"
-      />
+    {#if background.type === 'video'}
+      {#key background.source}
+        <video
+          bind:this={videoElement}
+          src={background.source}
+          autoplay
+          loop
+          muted
+          playsinline
+          preload="auto"
+          on:error={handleVideoError}
+          on:loadeddata={handleVideoLoaded}
+          on:canplay={handleVideoLoaded}
+          class="w-full h-full object-cover"
+          style="opacity: {background.opacity}; filter: blur({background.blur}px);"
+        />
+      {/key}
     {:else if background.type === 'image'}
       <div
         class="w-full h-full bg-cover bg-center"
