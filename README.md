@@ -18,10 +18,30 @@ Instead of uploading files to the cloud or opening each model in heavy 3D softwa
 
 ## Screenshots
 
-![Forma Application](docs/images/screenshot-placeholder.png)
-_Main interface showing asset grid with thumbnails and 3D preview (screenshots coming soon)_
+### 3D Model Viewer with HDRI Environment
 
-> **Note**: This is an early version. Professional screenshots and demo GIFs will be added soon.
+![3D Viewer](docs/images/detailed_asset_view.png)
+_Interactive 3D viewer with custom HDRI environment, showing a Porsche 918 Spyder model with realistic lighting and reflections_
+
+### Asset Grid View
+
+![Main Interface](docs/images/main_page.png)
+_Main interface showing asset grid with auto-generated thumbnails, search functionality, and filtering options_
+
+### Tree View Organization
+
+![Tree View](docs/images/tree_view.png)
+_Organize assets by folders with expandable tree view for easy navigation_
+
+### Folder Management
+
+![Folder Manager](docs/images/folder_manager.png)
+_Add folders to automatically scan and index your 3D models - supports GLB, GLTF, OBJ, FBX, and STL formats_
+
+### Background Customization
+
+![Background Settings](docs/images/background_settings.png)
+_Customize the app with images or videos as backgrounds, with adjustable opacity and blur controls_
 
 ## Features
 
