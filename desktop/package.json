@@ -23,7 +23,6 @@
   "dependencies": {
     "better-sqlite3": "^12.5.0",
     "chokidar": "^3.5.3",
-    "pocketbase": "^0.21.1",
     "three": "^0.160.0"
   },
   "devDependencies": {
