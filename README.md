@@ -289,18 +289,21 @@ This project is licensed under the **GNU General Public License v3.0** - see the
 ### What This Means:
 
 ✅ **You can:**
+
 - Use this software for free (personal or commercial)
 - Modify and improve the code
 - Distribute it to others
 - Study how it works
 
 ⚠️ **BUT you must:**
+
 - Keep it open-source (GPL v3)
 - Share your source code if you distribute modified versions
 - Include the original copyright notice
 - License your modifications under GPL v3
 
 ❌ **You cannot:**
+
 - Make a proprietary/closed-source version
 - Remove or change the license
 - Use it without providing source code access
@@ -317,6 +320,47 @@ For the complete license text, see: https://www.gnu.org/licenses/gpl-3.0.html
 
 - GitHub: [@MarkKatsDesign](https://github.com/MarkKatsDesign)
 - LinkedIn: [linkedin.com/in/mark-kats](https://www.linkedin.com/in/mark-kats/)
+
+---
+
+## Credits
+
+This project's documentation and screenshots feature high-quality 3D models and media created by talented artists from the community. **These assets are used solely for demonstration purposes** in the README and are not included in the repository or distributed with the application. All assets are used under their respective free licenses.
+
+### 3D Models
+
+**Cars:**
+
+- [Porsche 918 Spyder 2015](https://sketchfab.com/3d-models/porsche-918-spyder-2015-wwwvecarzcom-9fb9a088d0704a06ba69a8a6de100f10) by [vecarz](https://sketchfab.com/heynic) on Sketchfab
+- [1992 Porsche 911 (964) Turbo S 3.6](https://sketchfab.com/3d-models/1992-porsche-911-964-turbo-s-36-27240ad1a825434f99e980d7c904c3d0) by [Ddiaz Design](https://sketchfab.com/ddiaz-design) on Sketchfab
+- [2021 Lamborghini Countach LPI 800-4](https://sketchfab.com/3d-models/2021-lamborghini-countach-lpi-800-4-d76b94884432422b966d1a7f8815afb5) by [Lexyc16](https://sketchfab.com/Lexyc16) on Sketchfab
+- [Audi R8 LMS Modified](https://sketchfab.com/3d-models/audi-r8-lms-modified-d6445579e4a648879d61b9426d13d30e) by [MattsActuallyUsefulModels](https://sketchfab.com/MattsActuallyUsefulModels) on Sketchfab
+- [2023 McLaren Artura GT4](https://sketchfab.com/3d-models/2023-mclaren-artura-gt4-13fe32f1216147a8853084be1afa540e) by [Ddiaz Design](https://sketchfab.com/ddiaz-design) on Sketchfab
+
+**Laptops:**
+
+- [Asus ROG Strix Scar 17 (2023) G733 Gaming Laptop](https://sketchfab.com/3d-models/asus-rog-strix-scar-17-2023-g733-gaming-laptop-51eca7b2e5884c4087f3499e523d5184) by [Ranaha Creative Studio](https://sketchfab.com/ranahacs) on Sketchfab
+- [CyberPunk Laptop Concept Design](https://sketchfab.com/3d-models/cyberpunk-laptop-concept-design-fddc4e68cc6c498b88b19af1a05bd420) by [Berk Gedik](https://sketchfab.com/berkgedik) on Sketchfab
+- [Gaming Laptop](https://sketchfab.com/3d-models/gaming-laptop-4e72a2078b3c4a75a821ab09830693fe) by [Vivien Deroche](https://sketchfab.com/blue-odym) on Sketchfab
+- [Laptop](https://sketchfab.com/3d-models/laptop-f34c1400926e430a9ef10bb180986b42) by [Red Fox](https://sketchfab.com/nokillnando) on Sketchfab
+- [MacBook Pro 2021](https://sketchfab.com/3d-models/macbook-pro-2021-37763335f74b497e91906986b170b5d1) by [KangaroOz 3D](https://sketchfab.com/KangaroOz-3D) on Sketchfab
+
+**Smartphones:**
+
+- [Low Poly Phone Xiaomi Redmi Note 8T](https://sketchfab.com/3d-models/low-poly-phone-xiaomi-redmi-note-8t-2eda2e9440874b1cb5fc70a6fd282ee3) by [hueta.wrks](https://sketchfab.com/hueta.wrks) on Sketchfab
+- [iPhone 17 Pro](https://sketchfab.com/3d-models/iphone-17-pro-4aeeeb41f9d14f96bb3f2589edc3edac) by [Ibrahim.Bhl](https://sketchfab.com/ibrahim.bhl) on Sketchfab
+- [One Plus 7 Pro](https://sketchfab.com/3d-models/one-plus-7-pro-6dea856656e04a4b89fef3c2572ee238) by [lazercar](https://sketchfab.com/lazercar) on Sketchfab
+- [Google Pixel 6 Pro](https://sketchfab.com/3d-models/google-pixel-6-pro-b9b58ca40c254f8dafd8370869af74fb) by [DatSketch](https://sketchfab.com/DatSketch) on Sketchfab
+- [Samsung Galaxy S21 Ultra](https://sketchfab.com/3d-models/samsung-galaxy-s21-ultra-cd962832be7744efb6b37fe0ee2027e7) by [DatSketch](https://sketchfab.com/DatSketch) on Sketchfab
+
+### Video Backgrounds
+
+- [Changes in Form and Appearance of a Submerged Material](https://www.pexels.com/video/changes-in-form-and-appearance-of-a-submerged-material-3163534/) by [Oleg Gamulinskii](https://www.pexels.com/@oleg-gamulinskii-755060/) on Pexels
+- [Waving Blue Particles](https://www.pexels.com/video/waving-blue-particles-12920671/) by [Crazy Motions](https://www.pexels.com/@crazy-motions-80195021/) on Pexels
+- [Lava River from a Volcanic Eruption in Iceland](https://www.pexels.com/video/lava-river-from-a-volcanic-eruption-in-iceland-17675069/) by [Gylfi Gylfason](https://www.pexels.com/@just-icelandic/) on Pexels
+- [Planet](https://www.pexels.com/video/planet-856857/) by [Pixabay](https://www.pexels.com/@pixabay/) on Pexels
+
+**Thank you to all these amazing creators for making their work available to the community!**
 
 ---
 
