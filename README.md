@@ -6,7 +6,7 @@ Built with Electron, Svelte, and Three.js for Windows 10/11.
 
 ![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue.svg)
-![Electron](https://img.shields.io/badge/Electron-28.1.0-47848F.svg)
+![Electron](https://img.shields.io/badge/Electron-39.2.6-47848F.svg)
 ![Svelte](https://img.shields.io/badge/Svelte-4.2.8-FF3E00.svg)
 ![Three.js](https://img.shields.io/badge/Three.js-0.160.0-000000.svg)
 
@@ -202,15 +202,15 @@ Output files will be in `release/` directory:
 
 ### Technology Stack
 
-| Component             | Technology           | Purpose                     |
-| --------------------- | -------------------- | --------------------------- |
-| **Desktop Framework** | Electron 28.1.0      | Cross-platform desktop apps |
-| **Frontend**          | Svelte 4.2.8         | Reactive UI framework       |
-| **3D Engine**         | Three.js 0.160.0     | WebGL-based 3D rendering    |
-| **Database**          | better-sqlite3 9.2.2 | Fast local storage          |
-| **File Watching**     | chokidar 3.5.3       | File system monitoring      |
-| **Build Tool**        | Vite 5.0.11          | Fast builds and HMR         |
-| **Styling**           | Tailwind CSS 3.4.1   | Utility-first CSS           |
+| Component             | Technology            | Purpose                     |
+| --------------------- | --------------------- | --------------------------- |
+| **Desktop Framework** | Electron 39.2.6       | Cross-platform desktop apps |
+| **Frontend**          | Svelte 4.2.8          | Reactive UI framework       |
+| **3D Engine**         | Three.js 0.160.0      | WebGL-based 3D rendering    |
+| **Database**          | better-sqlite3 12.5.0 | Fast local storage          |
+| **File Watching**     | chokidar 3.5.3        | File system monitoring      |
+| **Build Tool**        | Vite 5.0.11           | Fast builds and HMR         |
+| **Styling**           | Tailwind CSS 3.4.1    | Utility-first CSS           |
 
 ### Project Structure
 
@@ -225,21 +225,42 @@ desktop/
 │   │       └── thumbnail.ts    # Thumbnail generation coordination
 │   ├── preload/                # Secure IPC bridge
 │   │   └── preload.ts          # Exposes safe APIs to renderer
-│   └── lib/                    # Svelte UI components
-│       ├── components/
-│       │   ├── AssetViewer.svelte    # 3D viewer with Three.js
-│       │   ├── AssetCard.svelte      # Thumbnail cards
-│       │   ├── AssetGrid.svelte      # Grid layout
-│       │   ├── FolderManager.svelte  # Folder management
-│       │   └── ...
-│       ├── stores/
-│       │   ├── localAssetStore.js    # Asset state management
-│       │   └── folderStore.js        # Folder state management
-│       └── utils/
-│           └── thumbnailGenerator.js # Client-side thumbnail generation
-├── package.json
-├── vite.config.ts
-└── README.md
+│   ├── lib/                    # Svelte UI components
+│   │   ├── components/
+│   │   │   ├── AssetViewer.svelte          # 3D viewer with Three.js
+│   │   │   ├── AssetCard.svelte            # Thumbnail cards
+│   │   │   ├── AssetGrid.svelte            # Grid layout
+│   │   │   ├── GroupedAssetGrid.svelte     # Tree view with grouped assets
+│   │   │   ├── FolderManager.svelte        # Folder management
+│   │   │   ├── SearchBar.svelte            # Search functionality
+│   │   │   ├── FilterToolbar.svelte        # Tag filtering
+│   │   │   ├── Navbar.svelte               # Top navigation bar
+│   │   │   ├── ThemeSwitcher.svelte        # Theme selection
+│   │   │   └── BackgroundCustomizer.svelte # Background customization
+│   │   ├── stores/
+│   │   │   ├── localAssetStore.js          # Asset state management
+│   │   │   ├── folderStore.js              # Folder state management
+│   │   │   └── themeStore.js               # Theme state management
+│   │   └── utils/
+│   │       └── thumbnailGenerator.js       # Client-side thumbnail generation
+│   ├── App.svelte              # Main application component
+│   ├── app.css                 # Global styles
+│   ├── main.ts                 # Renderer process entry
+│   └── main.js                 # Renderer process entry (JS)
+├── scripts/
+│   ├── dev.mjs                 # Development server script
+│   └── generate-icon.mjs       # Icon generation utility
+├── resources/
+│   ├── icon.ico                # Windows application icon
+│   └── icon.png                # Source icon image
+├── index.html                  # HTML entry point
+├── package.json                # Dependencies and scripts
+├── vite.config.ts              # Vite build configuration
+├── tsconfig.json               # TypeScript configuration
+├── tsconfig.electron.json      # Electron-specific TypeScript config
+├── tailwind.config.js          # Tailwind CSS configuration
+├── postcss.config.js           # PostCSS configuration
+└── svelte.config.js            # Svelte configuration
 ```
 
 ### Data Storage
