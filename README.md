@@ -196,8 +196,6 @@ Output files will be in `release/` directory:
 - `Forma Setup.exe` - NSIS installer
 - `Forma.exe` - Portable executable
 
-> **Note**: Icon files are currently placeholders. Custom icons will be added before the first release.
-
 ## Architecture
 
 ### Technology Stack
