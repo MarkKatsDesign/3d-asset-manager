@@ -344,6 +344,21 @@ For the complete license text, see: https://www.gnu.org/licenses/gpl-3.0.html
 
 ---
 
+## Support This Project
+
+If you find **Forma** useful and want to support its development, consider buying me a coffee or becoming a sponsor! Your support helps keep this project alive and maintained.
+
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Me-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/markkats)
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-Sponsor%20Me-EA4AAA?style=for-the-badge&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/MarkKatsDesign)
+
+**Ways to support:**
+- ☕ [Buy me a coffee on Ko-fi](https://ko-fi.com/markkats) - One-time donations
+- 💝 [Become a GitHub Sponsor](https://github.com/sponsors/MarkKatsDesign) - Monthly support with exclusive benefits
+
+Every contribution, no matter how small, is greatly appreciated and helps maintain this free and open-source project!
+
+---
+
 ## Credits
 
 This project's documentation and screenshots feature high-quality 3D models and media created by talented artists from the community. **These assets are used solely for demonstration purposes** in the README and are not included in the repository or distributed with the application. All assets are used under their respective free licenses.
