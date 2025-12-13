@@ -4,6 +4,9 @@
 
 Built with Electron, Svelte, and Three.js for Windows 10/11.
 
+[![Download Latest Release](https://img.shields.io/github/v/release/MarkKatsDesign/3d-asset-manager?label=Download%20v1.0.0&style=for-the-badge&color=6366f1)](https://github.com/MarkKatsDesign/3d-asset-manager/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/MarkKatsDesign/3d-asset-manager/total?style=for-the-badge&color=10b981)](https://github.com/MarkKatsDesign/3d-asset-manager/releases)
+
 ![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue.svg)
 ![Electron](https://img.shields.io/badge/Electron-39.2.6-47848F.svg)
@@ -107,16 +110,35 @@ _Customize the app with images or videos as backgrounds, with adjustable opacity
 
 ## Installation
 
+### 📥 Download Now
+
+**[⬇️ Download Forma v1.0.0](https://github.com/MarkKatsDesign/3d-asset-manager/releases/latest)**
+
+Choose one of the following:
+
+| File | Description | Recommended For |
+|------|-------------|-----------------|
+| `Forma Setup 1.0.0.exe` | **Full Installer** - Installs to Program Files with Start Menu shortcuts | ✅ Most users |
+| `Forma 1.0.0.exe` | **Portable Version** - Run directly without installation | USB drives, portable setups |
+
+### Quick Install Guide
+
+**Option 1: Installer (Recommended)**
+1. Download `Forma Setup 1.0.0.exe` from the [releases page](https://github.com/MarkKatsDesign/3d-asset-manager/releases/latest)
+2. Run the installer
+3. Follow the installation wizard
+4. Launch from Start Menu or Desktop shortcut
+
+**Option 2: Portable**
+1. Download `Forma 1.0.0.exe` from the [releases page](https://github.com/MarkKatsDesign/3d-asset-manager/releases/latest)
+2. Place it in any folder (e.g., `C:\Apps\Forma\`)
+3. Double-click to run - no installation needed!
+
 ### Prerequisites
 
 - **Windows 10/11** (64-bit)
-- **Node.js 18+** (for development only)
-
-### For End Users
-
-**Releases**: Coming soon - watch this repository for the first stable release
-
-**Early Access**: Build from source using the instructions below
+- ~100 MB disk space
+- 4 GB RAM minimum, 8 GB recommended
 
 ### For Developers
 
