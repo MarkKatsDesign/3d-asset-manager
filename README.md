@@ -117,27 +117,30 @@ _Customize the app with images or videos as backgrounds, with adjustable opacity
 
 Choose one of the following:
 
-| File | Description | Recommended For |
-|------|-------------|-----------------|
-| `Forma Setup 1.0.0.exe` | **Full Installer** - Installs to Program Files with Start Menu shortcuts | ✅ Most users |
-| `Forma 1.0.0.exe` | **Portable Version** - Run directly without installation | USB drives, portable setups |
+| File                    | Description                                                              | Recommended For             |
+| ----------------------- | ------------------------------------------------------------------------ | --------------------------- |
+| `Forma Setup 1.0.0.exe` | **Full Installer** - Installs to Program Files with Start Menu shortcuts | ✅ Most users               |
+| `Forma 1.0.0.exe`       | **Portable Version** - Run directly without installation                 | USB drives, portable setups |
 
 ### Quick Install Guide
 
 **Option 1: Installer (Recommended)**
+
 1. Download `Forma Setup 1.0.0.exe` from the [releases page](https://github.com/MarkKatsDesign/3d-asset-manager/releases/latest)
 2. Run the installer
 3. Follow the installation wizard
 4. Launch from Start Menu or Desktop shortcut
 
 **Option 2: Portable**
+
 1. Download `Forma 1.0.0.exe` from the [releases page](https://github.com/MarkKatsDesign/3d-asset-manager/releases/latest)
 2. Place it in any folder (e.g., `C:\Apps\Forma\`)
 3. Double-click to run - no installation needed!
 
 ### 🔒 Security
 
-**VirusTotal Verified:** Both executables have been scanned and are 100% clean (0/73 antivirus detections).
+**VirusTotal Verified:** Both executables have been scanned and are 100% clean (0/69 antivirus detections).
+
 - [📄 Installer Scan](https://www.virustotal.com/gui/file/acafe9af9d533986dfc0cb7c28c38f595eb5e5aa034500e3ae9603011b8f5189)
 - [📄 Portable Scan](https://www.virustotal.com/gui/file/54ccc746a9fafe2e2064a73d1d994a1d880f0588b8e807748a0211c414d92b82)
 
@@ -381,6 +384,7 @@ If you find **Forma** useful and want to support its development, consider buyin
 [![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-Sponsor%20Me-EA4AAA?style=for-the-badge&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/MarkKatsDesign)
 
 **Ways to support:**
+
 - ☕ [Buy me a coffee on Ko-fi](https://ko-fi.com/markkats) - One-time donations
 - 💝 [Become a GitHub Sponsor](https://github.com/sponsors/MarkKatsDesign) - Monthly support with exclusive benefits
 
