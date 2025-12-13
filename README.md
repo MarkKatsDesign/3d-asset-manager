@@ -6,6 +6,7 @@ Built with Electron, Svelte, and Three.js for Windows 10/11.
 
 [![Download Latest Release](https://img.shields.io/github/v/release/MarkKatsDesign/3d-asset-manager?label=Download%20v1.0.0&style=for-the-badge&color=6366f1)](https://github.com/MarkKatsDesign/3d-asset-manager/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/MarkKatsDesign/3d-asset-manager/total?style=for-the-badge&color=10b981)](https://github.com/MarkKatsDesign/3d-asset-manager/releases)
+[![VirusTotal](https://img.shields.io/badge/VirusTotal-0%2F73%20Clean-success?style=for-the-badge&logo=virustotal)](https://github.com/MarkKatsDesign/3d-asset-manager/releases/latest)
 
 ![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue.svg)
@@ -133,6 +134,14 @@ Choose one of the following:
 1. Download `Forma 1.0.0.exe` from the [releases page](https://github.com/MarkKatsDesign/3d-asset-manager/releases/latest)
 2. Place it in any folder (e.g., `C:\Apps\Forma\`)
 3. Double-click to run - no installation needed!
+
+### 🔒 Security
+
+**VirusTotal Verified:** Both executables have been scanned and are 100% clean (0/73 antivirus detections).
+- [📄 Installer Scan](https://www.virustotal.com/gui/file/acafe9af9d533986dfc0cb7c28c38f595eb5e5aa034500e3ae9603011b8f5189)
+- [📄 Portable Scan](https://www.virustotal.com/gui/file/54ccc746a9fafe2e2064a73d1d994a1d880f0588b8e807748a0211c414d92b82)
+
+**Windows SmartScreen Warning?** Since the app isn't code-signed (certificates cost $400/year), Windows may show an "Unknown publisher" warning. This is normal for open-source software. Click "More info" → "Run anyway" to proceed safely.
 
 ### Prerequisites
 
