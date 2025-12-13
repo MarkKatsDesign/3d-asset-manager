@@ -37,14 +37,15 @@
       processingStatus = 'Generating thumbnails...';
 
       // Subscribe to thumbnail progress
-      const unsubscribe = localAssetStore.subscribe((state) => {
+      let unsubscribe = null;
+      unsubscribe = localAssetStore.subscribe((state) => {
         if (state.thumbnailProgress.isGenerating) {
           processingStatus = `Generating thumbnails... (${state.thumbnailProgress.current}/${state.thumbnailProgress.total})`;
         } else if (state.thumbnailProgress.total > 0) {
           // Thumbnail generation complete
           processing = false;
           processingStatus = '';
-          unsubscribe();
+          if (unsubscribe) unsubscribe();
         }
       });
 
@@ -53,7 +54,7 @@
         if (!$localAssetStore.thumbnailProgress.isGenerating && $localAssetStore.thumbnailProgress.total === 0) {
           processing = false;
           processingStatus = '';
-          unsubscribe();
+          if (unsubscribe) unsubscribe();
         }
       }, 2000);
     } else {
